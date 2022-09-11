@@ -5,7 +5,12 @@
              v-if="showLoading">
       <img class="gif"
            src="../assets/loading.gif"
-           alt="">
+           alt=""
+           v-if="!showTips">
+      <img class="tipss"
+           src="../assets/tips.png"
+           alt=""
+           v-else>
     </section>
 
     <section class="top">
@@ -73,17 +78,18 @@ export default {
   props: {},
   data () {
     return {
+      showTips: false,
       config: {
         // 活动ID
-        liveId: '1891XW9W2R00',
+        liveId: '',
         // 下载类别
         // origin 下载原图库
         // publish 下载发布图库
-        type: 'publish',
+        type: '',
         // 下载分类
         // origin 按原图照片分类
         // publish 按发布照片分类
-        category: 'origin',
+        category: '',
         // 是否有水印
         watermark: true
       },
@@ -118,30 +124,41 @@ export default {
   },
   methods: {
     async init () {
-      this.showLoading = true
-      // 检测是否有缓存数据
-      const dList = this.$estore.get('downloadList')
-      console.log('-----dList', dList)
-      await this.initLive()
-      if (dList.length > 0) {
-        this.downloadList = dList
-        this.showLoading = false
-        if (this.downloadList.length === this.finishCount) {
-          this.isFinished = true
+      const configs = this.$estore.get('config')
+      if (configs) {
+        const o = this.getQuery(configs)
+        this.config = {
+          liveId: o.liveId || '',
+          type: o.type || '',
+          category: o.category || '',
+          watermark: o.watermark === 'true' || false
+        }
+      }
+      if (this.config.liveId) {
+        this.showLoading = true
+        this.showTips = false
+        // 检测是否有缓存数据
+        const dList = this.$estore.get('downloadList')
+        await this.initLive()
+        console.log('=====dList', dList)
+        if (dList && dList.length > 0) {
+          this.downloadList = dList
+          this.showLoading = false
+          if (this.downloadList.length === this.finishCount) {
+            this.isFinished = true
+          }
+        } else {
+          this.downloadList = []
+          // 根据配置下载
+          await this.getPhotoList(this.config.type)
+          await this.getCategoryList(this.config.category)
+          await this.handleList()
+          // console.log('=====downloadList', this.downloadList)
+          this.showLoading = false
         }
       } else {
-        // 根据配置下载
-        // this.config = {
-        //   liveId: '2N30FBRG4A00',
-        //   type: 'origin',
-        //   category: 'all',
-        //   watermark: true
-        // }
-        await this.getPhotoList(this.config.type)
-        await this.getCategoryList(this.config.category)
-        await this.handleList()
-        // console.log('=====downloadList', this.downloadList)
-        this.showLoading = false
+        this.showLoading = true
+        this.showTips = true
       }
     },
 
@@ -153,6 +170,7 @@ export default {
     },
 
     async getPhotoList (arg) {
+      this.photoList = []
       if (arg === 'origin') {
         // 获取原图库
         let arr = []
@@ -212,7 +230,7 @@ export default {
       if (id) {
         for (let i = 0; i < this.categoryList.length; i++) {
           if (this.categoryList[i].id === id) {
-            console.log('this.categoryList[i].name', this.categoryList[i].name)
+            // console.log('this.categoryList[i].name', this.categoryList[i].name)
             return this.categoryList[i].name
           }
         }
@@ -230,10 +248,13 @@ export default {
     },
 
     choosePath () {
-      ipcRenderer.send('choosePath')
+      if (ipcRenderer) {
+        ipcRenderer.send('choosePath')
+      }
     },
 
     handleList () {
+      console.warn('=================')
       this.photoList.map(item => {
         this.downloadList.push({
           id: item.id,
@@ -347,6 +368,7 @@ export default {
           })
           .on('end', () => {
             console.log('=====end')
+            out.end()
             resolve()
           })
       })
@@ -372,8 +394,7 @@ export default {
       // yaopai://liveId=1891XW9W2R00&type=publish&category=publish&watermark=false
       ipcRenderer.on('initConfig', (event, arg) => {
         console.log('监听到了配置变化：')
-        console.log('===arg', arg)
-        console.log('===config', this.$estore.get('config'))
+
 
         if (this.$estore.get('config') === arg) {
           // 老链接
@@ -381,22 +402,22 @@ export default {
         } else {
           // 新链接
           console.log('===新链接')
+          this.pauseDownload()
           this.$estore.set('downloadList', [])
           this.$estore.set('config', arg)
-          const o = this.getQuery(arg)
-          this.config = {
-            liveId: o.liveId || '',
-            type: o.type || '',
-            category: o.category || '',
-            watermark: o.watermark || false
-          }
-          this.init()
+          this.downloadList = []
+          this.isFinished = false
+          this.showTips = false
+          this.isDownloading = false
         }
+        this.init()
       })
     },
 
     openFold () {
-      ipcRenderer.send('openDownloadFold', this.downloadFold)
+      if (ipcRenderer) {
+        ipcRenderer.send('openDownloadFold', this.downloadFold)
+      }
     },
 
     async startDownload () {
@@ -410,15 +431,19 @@ export default {
 
               // 持久化下载列表
               this.$estore.set('downloadList', this.downloadList)
-              ipcRenderer.send('setBadge', (this.downloadList.length - this.finishCount))
+              // if (ipcRenderer) {
+              //   ipcRenderer.send('setBadge', (this.downloadList.length - this.finishCount))
+              // }
 
               // 下载完毕后的处理
               if (this.downloadList.length === this.finishCount) {
                 this.isFinished = true
-                ipcRenderer.send('notification', {
-                  title: '下载通知',
-                  body: `完成下载${this.finishCount}张图`
-                })
+                if (ipcRenderer) {
+                  ipcRenderer.send('notification', {
+                    title: '下载通知',
+                    body: `完成下载${this.finishCount}张图`
+                  })
+                }
               }
             } else {
 
@@ -453,6 +478,7 @@ export default {
                 const token = `${res.data.token_type} ${res.data.access_token}`
                 localStorage.setItem('x_token', token)
                 localStorage.setItem('x_refresh_token', res.data.refresh_token)
+                this.getCurrentUser()
               } else {
                 this.$router.replace({
                   path: '/login'
@@ -489,6 +515,11 @@ export default {
 <style lang="scss" scoped>
 .index-container {
   padding: 0 20px;
+
+  .tipss {
+    width: 130px;
+    display: block;
+  }
 
   .loading {
     width: 100%;

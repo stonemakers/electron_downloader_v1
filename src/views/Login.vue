@@ -170,7 +170,7 @@ export default {
   padding: 0 20px;
   .cover {
     width: 100%;
-    height: 400px;
+    height: 370px;
     // background: blue;
     display: flex;
     justify-content: center;
