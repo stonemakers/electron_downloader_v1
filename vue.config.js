@@ -9,7 +9,7 @@ module.exports = {
     electronBuilder: {
       nodeIntegration: true,
       builderOptions: {
-        appId: 'cc.lightio.www',
+        appId: 'cc.lightio.lightioCloudDiskDownloader',
         mac: {
           icon: './public/icon/app.png'
         },
