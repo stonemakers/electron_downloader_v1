@@ -4,13 +4,16 @@
     <section class="loading"
              v-if="showLoading">
       <img class="gif"
-           src="../assets/loading.gif"
+           src="../assets/loading.png"
            alt=""
            v-if="!showTips">
-      <img class="tipss"
-           src="../assets/tips.png"
-           alt=""
-           v-else>
+      <template v-else>
+        <section class="avatar"
+                 :style="{backgroundImage:  `url(${userInfo.avatar})`}"></section>
+        <img class="tipss"
+             src="../assets/tips.png"
+             alt="">
+      </template>
     </section>
 
     <section class="top">
@@ -19,7 +22,7 @@
                :style="{backgroundImage:  `url(${userInfo.avatar})`}"></section>
       <img class="gif"
            v-else
-           src="../assets/loading.gif"
+           src="../assets/logo.png"
            alt="">
       <template v-if="!isFinished">
         <h1>{{ finishCount }} / {{ downloadList.length }}</h1>
@@ -31,12 +34,14 @@
     </section>
 
     <section class="bottom">
+      {{ demo }}
       <section class="title"><input readonly
                type="text"
                :value="title"></section>
       <section class="config">
-        <span class="name">下载配置：</span>
-        <span class="content grey">{{ typeMap[config.type] }}/{{ categoryMap[config.category] }}/{{ config.watermark?'有水印':'无水印' }}</span>
+        <span class="name grey">下载配置：</span>
+        <span class="content "><span class="t">{{ typeMap[config.type] }}</span> / <span class="t">{{ categoryMap[config.category] }}</span>
+          / <span class="t">{{ config.watermark?'有水印':'无水印' }}</span></span>
       </section>
       <section class="save-path">
         <span class="name grey">保存路径：</span>
@@ -79,6 +84,7 @@ export default {
   data () {
     return {
       showTips: false,
+      demo: '',
       config: {
         // 活动ID
         liveId: '',
@@ -314,8 +320,12 @@ export default {
           // return
         }
         // const filePath = path.join(store.get('downloadsFolder') + file.savePath + file.name)
-        const filePath = `${fold}/${this.title}/${pic.path}/${pic.name}`
+        const filePath = `${fold}/${fmtStr(this.title)}/${fmtStr(pic.path)}/${pic.name}`
         console.log('--- filePath: ', filePath)
+
+        function fmtStr (text) {
+          return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
+        }
 
         let stat
         if (fs.existsSync(filePath)) {
@@ -333,10 +343,18 @@ export default {
           }
         } else {
           // 没有检测到该文件
-          fs.mkdirSync(`${fold}/${this.title}/${pic.path}`, { recursive: true }, err => {
+          fs.mkdirSync(`${fold}/${fmtStr(this.title)}/${fmtStr(pic.path)}`, { recursive: true }, err => {
             console.log('--- download.js - > 创建文件夹错误', err)
           })
+          // fs.mkdirSync(`${fold}/${this.title}/${pic.path}`, { recursive: true }, err => {
+          //   console.log('--- download.js - > 创建文件夹错误', err)
+          // })
         }
+
+        // /Users/stonemaker/Desktop/看这可爱的春天8888/分类2/52883015_5571143_43f5be5c-b777-48ad-b528-67a8f3ad200b.jpg
+        // /Users/stonemaker/Desktop/看这可爱的春天8888/分类1/52883015_5571143_7c691d21-4b40-4afd-9420-dfe2c77acb45.jpg
+
+
 
         // ====================================
         // ============ start
@@ -385,10 +403,16 @@ export default {
     },
 
     listenIPC () {
+      console.log('***************listen')
       ipcRenderer.on('setDownloadFolder', (event, arg) => {
         console.log('监听到了路径：', arg)
         this.$estore.set('downloadFold', arg)
         this.downloadFold = arg
+      })
+
+      ipcRenderer.on('demo', (event, arg) => {
+        console.log('%%%%%%%%%%demo', arg)
+        this.demo = arg
       })
 
       // yaopai://liveId=1891XW9W2R00&type=publish&category=publish&watermark=false
@@ -532,11 +556,31 @@ export default {
     justify-content: center;
     align-items: center;
     font-size: 14px;
+    flex-direction: column;
+
+    .gif {
+      width: 100px;
+    }
+
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      // background: red;
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center center;
+      margin-bottom: 100px;
+    }
+
+    .tipss {
+      width: 230px;
+    }
   }
 
   .top {
     width: 100%;
-    height: 400px;
+    height: 330px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -563,9 +607,21 @@ export default {
   }
 
   .bottom {
-    font-size: 14px;
+    font-size: 13px;
     color: #333;
     line-height: 30px;
+
+    .title {
+      input {
+        font-weight: 900;
+      }
+    }
+
+    .t {
+      // background: rgba(0, 0, 0, 0.05);
+      font-size: 13px;
+      border-radius: 4px;
+    }
 
     input {
       background: none;
@@ -574,6 +630,7 @@ export default {
       display: inline-flex;
       width: 100%;
       outline: none;
+      font-size: 13px;
     }
 
     .grey {
@@ -582,10 +639,9 @@ export default {
 
     .save-path {
       display: flex;
-      margin-top: 5px;
-      background: rgba(0, 0, 0, 0.05);
+      margin-top: 0px;
+      // background: rgba(0, 0, 0, 0.05);
       border-radius: 5px;
-      padding: 10px 20px 10px 10px;
       box-sizing: border-box;
       justify-content: flex-start;
 
@@ -603,11 +659,11 @@ export default {
       }
 
       .choose {
-        color: blue;
+        color: #000;
         padding: 0 0 0 15px;
         &:hover {
           cursor: pointer;
-          color: #000;
+          color: #333;
         }
       }
 
@@ -624,44 +680,48 @@ export default {
 
   .btn {
     color: #fff;
-    font-size: 18px;
-    background: blue;
+    font-size: 16px;
+    letter-spacing: 1px;
+    background: #000;
     height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 5px;
+    border-radius: 17px;
     margin-top: 20px;
+    font-weight: 900;
 
     &:hover {
       cursor: pointer;
-      background: rgb(0, 2, 100);
+      background: #333;
     }
   }
 
   .pause {
-    color: #fff;
-    font-size: 18px;
-    background: rgb(255, 51, 0);
+    color: #000;
+    font-size: 16px;
+    letter-spacing: 1px;
+    background: #ffff33;
     height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 5px;
+    border-radius: 17px;
     margin-top: 20px;
+    font-weight: 900;
 
     &:hover {
       cursor: pointer;
-      background: rgb(145, 32, 4);
+      background: #e0e02b;
     }
   }
 
   .finish {
-    color: rgb(14, 150, 14);
+    color: #000;
   }
 
   .finish-btn {
-    background: rgb(14, 150, 14);
+    background: #000;
     color: #fff;
   }
 }

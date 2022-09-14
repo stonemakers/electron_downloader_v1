@@ -168,16 +168,17 @@ export default {
 <style lang="scss" scoped>
 .login-container {
   padding: 0 20px;
+  box-sizing: border-box;
   .cover {
     width: 100%;
-    height: 370px;
+    height: 300px;
     // background: blue;
     display: flex;
     justify-content: center;
     align-items: center;
 
     img {
-      width: 60px;
+      width: 100px;
     }
   }
 
@@ -200,35 +201,45 @@ export default {
       // background: red;
       height: 50px;
       padding: 0 10px;
+      box-sizing: border-box;
       flex: 1;
+      width: 100px;
+      letter-spacing: 1px;
+      font-size: 18px;
       outline: none;
       background: transparent;
     }
 
-    .getcode {
-      color: blue;
-
-      &:hover {
-        cursor: pointer;
-        color: #000;
-      }
+    input::-webkit-input-placeholder,
+    textarea::-webkit-input-placeholder {
+      color: #666;
+      font-size: 14px;
+      letter-spacing: 0px;
     }
   }
+  .getcode {
+    color: #000;
 
+    &:hover {
+      cursor: pointer;
+      color: #333;
+    }
+  }
   .btn {
     color: #fff;
-    font-size: 18px;
-    background: blue;
+    font-size: 16px;
+    letter-spacing: 1px;
+    background: #000;
     height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 5px;
-    margin-top: 50px;
-
+    border-radius: 17px;
+    margin-top: 20px;
+    font-weight: 900;
     &:hover {
       cursor: pointer;
-      background: rgb(0, 2, 100);
+      background: #333;
     }
   }
 }

@@ -9,14 +9,14 @@ module.exports = {
     electronBuilder: {
       nodeIntegration: true,
       builderOptions: {
-        appId: 'com.aiyaopai.www',
+        appId: 'cc.lightio.www',
         mac: {
           icon: './public/icon/app.png'
         },
         win: {
           icon: './public/icon/app.ico'
         },
-        productName: '邀拍云影像'
+        productName: 'LightIO'
       }
     }
   }

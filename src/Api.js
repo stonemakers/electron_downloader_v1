@@ -7,8 +7,8 @@
 import request from '@/utils/request.js'
 import qs from 'qs'
 
-// const DOMAIN = 'https://saas.api.lightio.cc'
-const DOMAIN = 'https://api-sta.devops.back.aiyaopai.com'
+const DOMAIN = 'https://saas.api.lightio.cc'
+// const DOMAIN = 'https://api-sta.devops.back.aiyaopai.com'
 
 export default {
   // 获取短信验证码

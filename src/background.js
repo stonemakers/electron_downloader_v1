@@ -9,6 +9,8 @@ import Store from 'electron-store'
 
 // console.log(app.getPath('userData'))
 
+let url = ''
+
 const store = new Store({
   name: 'config', // 文件名称,默认 config
   fileExtension: 'json', // 文件后缀,默认json
@@ -20,8 +22,6 @@ const store = new Store({
 if(!store.get('downloadFold')){
   store.set('downloadFold',app.getPath('downloads'))
 }
-
-
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
@@ -35,8 +35,8 @@ Menu.setApplicationMenu(null)
 
 async function createWindow() {
   win = new BrowserWindow({
-    width: 400,
-    height: 650,
+    width: 350,
+    height: 550,
     resizable: false,
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
@@ -61,8 +61,10 @@ app.on('window-all-closed', () => {
   }
 })
 
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  
 })
 
 // const gotTheLock = app.requestSingleInstanceLock()
@@ -79,6 +81,55 @@ app.on('activate', () => {
 //     }
 //   })
 // }
+
+function handleUrl(urlStr) {
+  // myapp://?name=1&pwd=2
+  console.log(urlStr)
+  const urlObj = new URL(urlStr);
+  const { searchParams } = urlObj;
+  console.log(urlObj.search.replace('?','')); // -> ?name=1&pwd=2
+  // ================================================
+  url = urlObj.search.replace('?','')
+  // if(win && win.webContents){
+  //   win.focus()
+  //   win.webContents.send('initConfig', url)
+  // }else{
+  //   // alert('haha')
+  //   console.log('^^^^^^^^^', url)
+  // }
+
+
+  let timmer = setInterval(() => {
+    if(win && win.webContents){
+      win.focus()
+      setTimeout(() => {
+        win.webContents.send('initConfig', url)
+      }, 1000);
+      
+      clearInterval(timmer)
+    }
+  }, 500)
+}
+
+app.on ('will-finish-launching' , () => {
+  console.log('*****%%%%$$$$')
+  // handleUrl('yaopai://download?liveId=1891XW9W2R00&type=publish&category=publish&watermark=true');
+  // dialog.showMessageBox(win, {message: 'hahahahah'})
+  // win.webContents.send('demo', '哈哈哈哈哈哈')
+  // handleUrl(urlStr);
+  try{
+  app.on('open-url', (event, urlStr) => {
+    // win.webContents.send('demo', urlStr)
+    event.preventDefault()
+    handleUrl(urlStr);
+    // dialog.showMessageBox(win, {message: urlStr})
+  });
+}catch(e){
+  console.log(e)
+}
+})
+
+
 
 app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
@@ -153,7 +204,62 @@ app.on('ready', async () => {
         console.log(err)
       })
   })
+
+  // 处理打开协议
+
+  console.log('======process.argv',process.argv)
+
+  // dialog.showMessageBox(win, {message: process.argv[0]})
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+}
+
+const PROTOCOL = 'yaopai';
+const args = [];
+if (!app.isPackaged) {
+  args.push(path.resolve(process.argv[1]));
+}
+args.push('--');
+
+app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, args);
+
+handleArgv(process.argv);
+
+app.on('second-instance', (event, argv) => {
+  if (process.platform === 'win32') {
+    // Windows
+    handleArgv(argv);
+  }
+});
+
+// yaopai://download?liveId=30ZBREAM0100&type=publish&category=publish&watermark=true
+
+
+// macOS
+// app.on('open-url', (event, urlStr) => {
+//   event.preventDefault()
+//   handleUrl(urlStr);
+//   dialog.showMessageBox(win, {message: urlStr})
+// });
+
+function handleArgv(argv) {
+  const prefix = `${PROTOCOL}:`;
+  const offset = app.isPackaged ? 1 : 2;
+  const url = argv.find((arg, i) => i >= offset && arg.startsWith(prefix));
+  if (url) handleUrl(url);
+}
 })
+
+// app.on('web-contents-created', () => {
+//   console.log('web-contents-created-------------', win, url)
+//   if(url){
+//     win.webContents.send('demo', url)
+//     win.webContents.send('initConfig', url)
+//   }
+// })
 
 if (isDevelopment) {
   if (process.platform === 'win32') {
@@ -187,56 +293,4 @@ if (isDevelopment) {
 // ================================================
 // ================================================
 // ================================================
-// 处理打开协议
 
-
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-}
-
-const PROTOCOL = 'yaopai';
-const args = [];
-if (!app.isPackaged) {
-  args.push(path.resolve(process.argv[1]));
-}
-args.push('--');
-
-app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, args);
-
-handleArgv(process.argv);
-
-app.on('second-instance', (event, argv) => {
-  if (process.platform === 'win32') {
-    // Windows
-    handleArgv(argv);
-  }
-});
-
-// macOS
-app.on('open-url', (event, urlStr) => {
-  event.preventDefault()
-  handleUrl(urlStr);
-});
-
-function handleArgv(argv) {
-  const prefix = `${PROTOCOL}:`;
-  const offset = app.isPackaged ? 1 : 2;
-  const url = argv.find((arg, i) => i >= offset && arg.startsWith(prefix));
-  if (url) handleUrl(url);
-}
-
-function handleUrl(urlStr) {
-  // myapp://?name=1&pwd=2
-  const urlObj = new URL(urlStr);
-  const { searchParams } = urlObj;
-  console.log(urlObj.search.replace('?','')); // -> ?name=1&pwd=2
-  // ================================================
-  if(win && win.webContents){
-    win.focus()
-    win.webContents.send('initConfig', urlObj.search.replace('?',''))
-  }else{
-    // alert('haha')
-  }
-}
