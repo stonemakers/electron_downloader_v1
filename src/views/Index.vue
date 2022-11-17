@@ -1,488 +1,457 @@
 <template>
   <section class="index-container">
-
-    <section class="loading"
-             v-if="showLoading">
-      <img class="gif"
-           src="../assets/loading.png"
-           alt=""
-           v-if="!showTips">
-      <template v-else>
-        <section class="avatar"
-                 :style="{backgroundImage:  `url(${userInfo.avatar})`}"></section>
-        <img class="tipss"
-             src="../assets/tips.png"
-             alt="">
-      </template>
+    <!-- loading -->
+    <x-loading v-if="loading"></x-loading>
+    <!-- 任務解析 -->
+    <section class="mask"
+             v-if="showAdd">
+      <h1>请输入解析网址</h1>
+      <textarea name=""
+                id=""
+                rows="10"
+                v-model="urlStr"></textarea>
+      <section class="ok"
+               @click="startHandle(urlStr)">开始解析</section>
+      <section class="cancel"
+               @click="cancelHandle">返回</section>
     </section>
-
-    <section class="top">
+    <section class="header"
+             :class="{scale: scaleMin}">
+      <h1 class="title">正在下载 {{taskList.length}}</h1>
       <section class="avatar"
-               v-if="!isDownloading"
+               @click="logout"
                :style="{backgroundImage:  `url(${userInfo.avatar})`}"></section>
-      <img class="gif"
-           v-else
-           src="../assets/logo.png"
-           alt="">
-      <template v-if="!isFinished">
-        <h1>{{ finishCount }} / {{ downloadList.length }}</h1>
-      </template>
-      <template v-else>
-        <h1 class="finish">下载完毕</h1>
-      </template>
-
     </section>
 
-    <section class="bottom">
-      {{ demo }}
-      <section class="title"><input readonly
-               type="text"
-               :value="title"></section>
-      <section class="config">
-        <span class="name grey">下载配置：</span>
-        <span class="content "><span class="t">{{ typeMap[config.type] }}</span> / <span class="t">{{ categoryMap[config.category] }}</span>
-          / <span class="t">{{ config.watermark?'有水印':'无水印' }}</span></span>
+    <!-- 下载列表 -->
+    <section class="download-list"
+             v-if="taskList.length>0">
+      <section class="item"
+               v-for="(item, index) in taskList"
+               :key="index">
+        <section class="process-mask"
+                 :style="{width: calcProcess(item)+'%'}"></section>
+        <section class="symbol"
+                 v-if="item">
+          <x-icon :type="handleType(item.type).icon"></x-icon>
+        </section>
+
+        <section class="name"
+                 v-if="item"
+                 :title="item.title">{{ item.title }}
+          <section class="symbol2"
+                   v-if="item.type==='photoLive'">{{handleType(item.type).name}} {{ (item.desc.source==='origin'?'原片':'发布') }} | {{ item.desc.sourceType==='origin'?'原片分类':'发布分类'}} | {{item.desc.sourceWatermark==='true'?'水印':'无印' }}</section>
+          <section class="symbol2"
+                   v-else>{{handleType(item.type).name}}</section>
+        </section>
+        <section class="process">{{ calcProcess(item) }}%</section>
+        <section class="handle-wrapper">
+          <section class="icon-start"
+                   @click="startDownload(item.taskId)"
+                   v-if="item.status===0 && !item.finished"
+                   title="开始下载">
+            <x-icon type="start"></x-icon>
+          </section>
+          <section class="icon-pause"
+                   @click="pauseDownload(item.taskId)"
+                   v-else-if="item.status===1 && !item.finished"
+                   title="暂停下载">
+            <x-icon type="pause"></x-icon>
+          </section>
+          <section class="icon-pause"
+                   @click="openFold(item)"
+                   v-else
+                   title="打开目录">
+            <x-icon type="folder"></x-icon>
+          </section>
+          <section class="icon-delete"
+                   @click="removeDownload(item.taskId)"
+                   title="删除任务">
+            <x-icon type="close"></x-icon>
+          </section>
+        </section>
       </section>
-      <section class="save-path">
-        <span class="name grey">保存路径：</span>
-        <span class="content"><input readonly
-                 type="text"
-                 :value="downloadFold"></span>
-        <section class="choose"
-                 v-if="!isDownloading"
-                 @click="choosePath">浏览</section>
-        <section class="choose disable"
-                 v-else>浏览</section>
+    </section>
+
+    <section class="download-list"
+             v-else>
+      <p class="tip">
+        <x-icon type="none"></x-icon>
+      </p>
+      
+    </section>
+
+    <!-- 底栏 -->
+    <section class="footer">
+      <section class="logo">
+        <x-icon type="logo"></x-icon>
+        <p class="version">{{ $version }}</p>
       </section>
-
-      <template v-if="!isFinished">
-        <section class="btn"
-                 @click="startDownload"
-                 v-if="!isDownloading">开始下载</section>
-        <section class="btn pause"
-                 @click="pauseDownload"
-                 v-else>暂停下载</section>
-      </template>
-
-      <template v-else>
-        <section class="btn finish-btn"
-                 @click="openFold">打开文件夹</section>
-      </template>
-
+      <section class="handle-wrapper">
+        <section class="icon-start"
+                 @click="addTask"
+                 title="新建任务">
+          <x-icon type="add"></x-icon>
+        </section>
+        <section class="icon-start" @click="startAllTask"
+        v-if="!startAll || taskCount===0"
+                 title="全部开始">
+          <x-icon type="start"></x-icon>
+        </section> 
+        <section class="icon-start" @click="pauseAll"
+        v-else
+                 title="全部暂停">
+          <x-icon type="pause"></x-icon>
+        </section>
+        <section class="icon-start" @click="deleteAll"
+                 title="全部删除">
+          <x-icon type="close"></x-icon>
+        </section>
+        <section class="icon-delete"
+                 @click="setup"
+                 title="设置">
+          <x-icon type="setup"></x-icon>
+        </section>
+      </section>
     </section>
   </section>
 </template>
 <script>
 import { ipcRenderer } from 'electron'
-import fs from 'fs'
-import request from 'request'
+import loadData from '@/utils/download.js'
 import api from '@/Api'
+import XLoading from '@/components/XLoading/Index.vue'
+// import downloadPhotoLive from '@/utils/photoLive.js'
+// import downloadCloudAlbum from '@/utils/cloudAlbum.js'
+// import downloadFile from '@/utils/file.js'
+// import downloadShareFold from '@/utils/shareFold.js'
+// import downloadFold from '@/utils/fold.js'
+
 export default {
   name: 'index',
-  components: {},
+  components: {
+    XLoading
+  },
   props: {},
   data () {
     return {
-      showTips: false,
-      demo: '',
-      config: {
-        // 活动ID
-        liveId: '',
-        // 下载类别
-        // origin 下载原图库
-        // publish 下载发布图库
-        type: '',
-        // 下载分类
-        // origin 按原图照片分类
-        // publish 按发布照片分类
-        category: '',
-        // 是否有水印
-        watermark: true
+      scaleMin: false,
+      queue: [],
+      taskCount: 0,
+      startAll: false,
+      loading: false,
+      urlStr: '',
+      showAdd: false,
+      taskConfig: {
+        env: 'pro',  // 测试环境（dev）, 生产环境（pro）
+        downloadList: [
+          {
+            downloadType: 'cloudAlbum', // 云相册
+            id: '33VEGTXM0M00', // 云相册id 
+            sourceWatermark: true // 是否带水印
+          },
+          {
+            downloadType: 'photoLive', // 照片直播
+            id: '3C96J23W5S00', // 照片直播id
+            source: 'publish', // 下载源 
+            sourceType: 'publish', // 下载分类 
+            sourceWatermark: false // 是否带水印
+          },
+          {
+            downloadType: 'photoLive', // 照片直播
+            id: '3C95VHA05S00', // 照片直播id
+            source: 'publish', // 下载源 
+            sourceType: 'publish', // 下载分类 
+            sourceWatermark: false // 是否带水印
+          },
+          // {
+          //   暂未支持
+          //   downloadType: 'asset', // 素材库
+          //   id: '2838384884', // 素材id
+          // },  
+          {
+            downloadType: 'file', // 文件
+            name: '3HQ8975G0400.exe', // 文件名
+            url: 'https://api-sta.devops.back.aiyaopai.com/object/1d63c54d/3HQ8975G0400.exe?t=ZXhwaXJlcz04NjQwMCZ0aW1lc3RhbXA9MTY2NzExNzQwNiZzaWduPTdmNTQ1ZDg5ZmE'
+          },
+          {
+            downloadType: 'shareFold', // 文件夹
+            id: '3PHNHCNW0400', // 文件夹id
+            password: 'AVX0' // 分享密码 
+          },
+          {
+            downloadType: 'fold', // 文件夹
+            id: '2VGXRQ680B00', // 文件夹id 
+          }
+        ]
       },
-      showLoading: true,
-      isDownloading: false,
-      watermark: '',
-      title: '',
-      isFinished: false,
-      photoList: [],
-      categoryList: [],
-      downloadList: [],
-      downloadFold: '',
-      typeMap: {
-        origin: '原图',
-        publish: '发布图'
-      },
-      categoryMap: {
-        origin: '按原图分类',
-        publish: '按发布照片分类'
-      }
+      taskList: []
     }
   },
   computed: {
     userInfo () {
       return this.$store.state.user.info
     },
-    finishCount () {
-      return this.downloadList.filter(item => {
-        return item.downloaded === true
-      }).length
+    // downloadTask () {
+    //   return this.$estore.get('downloadTask')
+    // },
+  },
+  watch: {
+    // downloadTask () {
+    //   // console.log('bianhuale')
+    // },
+    taskList (n, o) {
+      // console.log('变化了')
+    },
+    queue () {
+
     }
   },
   methods: {
-    async init () {
-      const configs = this.$estore.get('config')
-      if (configs) {
-        const o = this.getQuery(configs)
-        this.config = {
-          liveId: o.liveId || '',
-          type: o.type || '',
-          category: o.category || '',
-          watermark: o.watermark === 'true' || false
-        }
-      }
-      if (this.config.liveId) {
-        this.showLoading = true
-        this.showTips = false
-        // 检测是否有缓存数据
-        const dList = this.$estore.get('downloadList')
-        await this.initLive()
-        console.log('=====dList', dList)
-        if (dList && dList.length > 0) {
-          this.downloadList = dList
-          this.showLoading = false
-          if (this.downloadList.length === this.finishCount) {
-            this.isFinished = true
-          }
-        } else {
-          this.downloadList = []
-          // 根据配置下载
-          await this.getPhotoList(this.config.type)
-          await this.getCategoryList(this.config.category)
-          await this.handleList()
-          // console.log('=====downloadList', this.downloadList)
-          this.showLoading = false
-        }
-      } else {
-        this.showLoading = true
-        this.showTips = true
-      }
+    removeDownload (taskId) {
+      this.pauseDownload(taskId)
+      let index = this.taskList.findIndex(item => item.taskId === taskId)
+      console.log('找到index', index)
+      this.taskList.splice(index, 1)
+      console.log('剩余', this.taskList.length)
+      // const currentTask = this.taskList.find(item => item.taskId === taskId)
+      // const task = this.$estore.get('downloadTask')
+      // task.downloadList = this.taskList
+      // this.$estore.set('downloadTask', task)
     },
-
-    async initLive () {
-      const res = (await api.getAlbumById(this.config.liveId)).data
-      this.title = res.name
-      console.log('=====title', this.title)
-      this.watermark = JSON.parse(res.templates) ? JSON.parse(res.templates).waterStr.replace('R1000w', '') : ''
+    cancelHandle () {
+      this.showAdd = false
     },
-
-    async getPhotoList (arg) {
-      this.photoList = []
-      if (arg === 'origin') {
-        // 获取原图库
-        let arr = []
-        const res = (await api.getOriginAlbumPhotoList({
-          albumId: this.config.liveId,
-          offset: 0,
-          limit: 100
-        })).data
-
-        const count = Math.ceil(res.total / 100)
-
-        for (let i = 0; i < count; i++) {
-          const list = (await api.getOriginAlbumPhotoList({
-            albumId: this.config.liveId,
-            offset: i * 100,
-            limit: 100
-          })).data.result
-
-          this.photoList.push(...list)
-        }
-      } else {
-        // 获取发布照片库
-        let arr = []
-        const res = (await api.getPublishAlbumPhotoList({
-          albumId: this.config.liveId,
-          offset: 0,
-          limit: 100
-        })).data
-
-        const count = Math.ceil(res.total / 100)
-
-        for (let i = 0; i < count; i++) {
-          const list = (await api.getPublishAlbumPhotoList({
-            albumId: this.config.liveId,
-            offset: i * 100,
-            limit: 100
-          })).data.result
-
-          this.photoList.push(...list)
-        }
-      }
-    },
-
-    async getCategoryList (arg) {
-      try {
-        if (arg === 'origin') {
-          this.categoryList = (await api.getOriginCategory(this.config.liveId)).data.result
-        } else {
-          this.categoryList = (await api.getPublishCategory(this.config.liveId)).data.result
-        }
-      } catch (e) {
-        console.log(e)
-      }
-    },
-
-    getCategoryNameById (id) {
-      if (id) {
-        for (let i = 0; i < this.categoryList.length; i++) {
-          if (this.categoryList[i].id === id) {
-            // console.log('this.categoryList[i].name', this.categoryList[i].name)
-            return this.categoryList[i].name
-          }
-        }
-      } else {
-        return ''
-      }
-    },
-
-    handleUrl (url) {
-      if (this.config.watermark) {
-        return url + '&' + this.watermark
-      } else {
-        return url
-      }
-    },
-
-    choosePath () {
+    openFold(task){
       if (ipcRenderer) {
-        ipcRenderer.send('choosePath')
+        if(task.type==='file'){
+          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold'))
+        }else{
+          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold')+'/'+task.title)
+        }
+        
       }
     },
-
-    handleList () {
-      console.warn('=================')
-      this.photoList.map(item => {
-        this.downloadList.push({
-          id: item.id,
-          categoryId: item.categoryId,
-          originCategoryId: item.originalCategoryId,
-          path: this.getCategoryNameById(this.config.category === 'publish' ? item.categoryId : item.originalCategoryId),
-          url: this.handleUrl(item.url),
-          name: item.name,
-          downloaded: false
-        })
+    startHandle(str){
+      // =====思路如下=====
+      // 新建一个窗口
+      // 将str传递给该窗口
+      // 在窗口中执行该解析方法
+      // 将解析后的内容传递给本窗口
+      // 关闭窗口
+      // this.createNewWindow()
+      this.loading = true
+      this.showAdd = false
+      this.urlStr = ''
+      ipcRenderer.send('createNewWindow', {
+        message: decodeURI(str)
       })
     },
-
-    getHeaders (url) {
-      return new Promise((resolve, reject) => {
-        request(
-          {
-            url: url,
-            method: 'GET',
-            forever: true,
-            headers: {
-              // 请求头
-              'Cache-Control': 'no-cache',
-              Range: 'bytes=0-1'
-            }
-          },
-          (err, res) => {
-            if (err) {
-              reject(err)
-            } else {
-              resolve(res.headers)
-            }
-          }
-        )
+    addTask () {
+      // console.log(1)
+      this.showAdd = true
+    },
+    setup () {
+      this.$router.push({
+        name: 'setup'
       })
     },
-
-    async download (pic) {
-      return new Promise(async (resolve, reject) => {
-        const fold = this.downloadFold
-        let req
-        let out
-        let totalSize = 0
-        let receivedBytes = 0
-        const headers = await this.getHeaders(pic.url)
-        if (headers['content-range']) {
-          totalSize = Number(headers['content-range'].split('/')[1]) // 文件总大小
-        } else {
-          totalSize = 0
+    // 计算进度
+    calcProcess (task) {
+      // console.log('计算进度', task)
+      // console.log('=====',task)
+      // console.log('finished', task.fileList.filter(item => item.downloaded === true).length)
+      if (task) {
+        const p = parseInt(task.fileList.filter(item => item.downloaded === true).length / (task.fileList.length !== 0 ? task.fileList.length : 1) * 100)
+        // console.log('====1', task.fileList.filter(item => item.downloaded === true).length)
+        // console.log('====2', task.fileList.length)
+        if (p === 100) {
+          // let index = this.taskList.findIndex(item => item.taskId === task.taskId)
+          task.finished = true
         }
-
-        console.log('--- download.js - > totalsize', totalSize)
-
-        if (headers['accept-ranges'] !== 'bytes') {
-          // 判断资源是否支持断点下载
-          console.log('--- download.js - > 资源不支持断点下载')
-          // return
-        }
-        // const filePath = path.join(store.get('downloadsFolder') + file.savePath + file.name)
-        const filePath = `${fold}/${fmtStr(this.title)}/${fmtStr(pic.path)}/${pic.name}`
-        console.log('--- filePath: ', filePath)
-
-        function fmtStr (text) {
-          return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
-        }
-
-        let stat
-        if (fs.existsSync(filePath)) {
-          console.log('--- download.js - > 检测存在该文件')
-          stat = fs.statSync(filePath) // 获取文件资源
-          receivedBytes = stat.size
-          console.log(`--- download.js - > receivedBytes：${receivedBytes}`)
-          if (receivedBytes === totalSize) {
-            console.log('--- download.js - > 文件已下载完毕')
-            resolve()
-          }
-          if (receivedBytes > totalSize) {
-            console.log('--- download.js - > 本地大于网络资源')
-            resolve()
-          }
-        } else {
-          // 没有检测到该文件
-          fs.mkdirSync(`${fold}/${fmtStr(this.title)}/${fmtStr(pic.path)}`, { recursive: true }, err => {
-            console.log('--- download.js - > 创建文件夹错误', err)
-          })
-          // fs.mkdirSync(`${fold}/${this.title}/${pic.path}`, { recursive: true }, err => {
-          //   console.log('--- download.js - > 创建文件夹错误', err)
-          // })
-        }
-
-        // /Users/stonemaker/Desktop/看这可爱的春天8888/分类2/52883015_5571143_43f5be5c-b777-48ad-b528-67a8f3ad200b.jpg
-        // /Users/stonemaker/Desktop/看这可爱的春天8888/分类1/52883015_5571143_7c691d21-4b40-4afd-9420-dfe2c77acb45.jpg
-
-
-
-        // ====================================
-        // ============ start
-        // ====================================
-
-        req = request({
-          method: 'GET',
-          url: pic.url,
-          forever: true,
-          headers: {
-            // 请求头
-            'Cache-Control': 'no-cache',
-            Range: `bytes=${receivedBytes}-${totalSize - 1}`
-          }
-        })
-
-        out = fs.createWriteStream(filePath, {
-          flags: 'a'
-        })
-
-        req
-          .on('data', chunk => {
-            if (out) {
-              out.write(chunk, async () => {
-                receivedBytes += chunk.length
-                console.log('--- download.js - > receivedBytes', receivedBytes)
-              })
-            }
-          })
-          .on('end', () => {
-            console.log('=====end')
-            out.end()
-            resolve()
-          })
-      })
+        return p
+      } else {
+        return 0
+      }
     },
-
     getQuery (queryStr) {
-      const arr = queryStr.split('&');
-      let obj = {}
-      for (let item of arr) {
-        const keyValue = item.split('=');
-        obj[keyValue[0]] = keyValue[1]
-      }
-      return obj;
-    },
-
-    listenIPC () {
-      console.log('***************listen')
-      ipcRenderer.on('setDownloadFolder', (event, arg) => {
-        console.log('监听到了路径：', arg)
-        this.$estore.set('downloadFold', arg)
-        this.downloadFold = arg
-      })
-
-      ipcRenderer.on('demo', (event, arg) => {
-        console.log('%%%%%%%%%%demo', arg)
-        this.demo = arg
-      })
-
-      // yaopai://liveId=1891XW9W2R00&type=publish&category=publish&watermark=false
-      ipcRenderer.on('initConfig', (event, arg) => {
-        console.log('监听到了配置变化：')
-
-
-        if (this.$estore.get('config') === arg) {
-          // 老链接
-          console.log('===老链接')
-        } else {
-          // 新链接
-          console.log('===新链接')
-          this.pauseDownload()
-          this.$estore.set('downloadList', [])
-          this.$estore.set('config', arg)
-          this.downloadList = []
-          this.isFinished = false
-          this.showTips = false
-          this.isDownloading = false
+      try {
+        // console.log(1, queryStr.split('env=')[1])
+        const str = 'env=' + queryStr.split('env=')[1]
+        // console.log(2, str)
+        const str1 = str.split('env=')[1];
+        // console.log(3, str1)
+        const env = str1.split('&')[0]
+        // console.log(4, env)
+        const downloadList = decodeURI(str.split('downloadList=')[1]);
+        // console.log(5, downloadList)
+        const obj = {
+          env: env,
+          downloadList: JSON.parse(downloadList)
         }
-        this.init()
-      })
-    },
-
-    openFold () {
-      if (ipcRenderer) {
-        ipcRenderer.send('openDownloadFold', this.downloadFold)
+        // console.log('========00000', obj)
+        return obj;
+      } catch (e) {
+        return {}
       }
     },
-
-    async startDownload () {
-      if (this.title) {
-        this.isDownloading = true
-        for (let i = 0; i < this.downloadList.length; i++) {
-          if (this.isDownloading) {
-            if (!this.downloadList[i].downloaded) {
-              await this.download(this.downloadList[i])
-              this.downloadList[i].downloaded = true
-
-              // 持久化下载列表
-              this.$estore.set('downloadList', this.downloadList)
-              // if (ipcRenderer) {
-              //   ipcRenderer.send('setBadge', (this.downloadList.length - this.finishCount))
-              // }
-
-              // 下载完毕后的处理
-              if (this.downloadList.length === this.finishCount) {
-                this.isFinished = true
-                if (ipcRenderer) {
-                  ipcRenderer.send('notification', {
-                    title: '下载通知',
-                    body: `完成下载${this.finishCount}张图`
-                  })
-                }
-              }
-            } else {
-
-            }
+    getNewQueue (task) {
+      let fl
+      for (let i = 0; i < task.fileList.length; i++) {
+        if (!task.fileList[i].downloaded && !task.fileList[i].inQueue) {
+          fl = task.fileList[i]
+          break
+        }
+      }
+      return fl
+    },
+    startAllTask(){
+      this.taskCount = this.taskList.length
+      this.startAll = true
+      this.taskList.map(item => {
+        this.startDownload(item.taskId)
+      })
+    },
+    pauseAll(){
+      this.startAll = false
+      this.taskList.map(item => {
+        this.pauseDownload(item.taskId)
+      })
+    },
+    deleteAll(){
+      // console.log(this.taskList, this.taskList.length)
+      const list = this.taskList.concat()
+      console.log('list', list)
+      if(window.confirm('确认删除所有项目么')){
+        for(let i = 0; i<list.length; i++){
+          console.log(i)
+          this.removeDownload(list[i].taskId)
+        }
+      }
+    },
+    down (task, fileItem) {
+      if (fileItem) {
+        fileItem.inQueue = true
+        // 获取当前任务队列
+        // 如果队列任务小于3，则添加任务到队列，
+        // 队列任务同时进行下载，单个任务下载完毕后，移除队列，添加新任务到队列中
+        console.log(fileItem.savePath, fileItem.fold)
+        loadData.download(fileItem.url, fileItem.savePath, fileItem.fold).then(res => {
+          // console.log('下载完毕')
+          fileItem.downloaded = true
+          const nFileItem = this.getNewQueue(task)
+          if (nFileItem) {
+            // 开始下载
+            // console.log('=====nFileItem', nFileItem.url)
+            this.down(task, nFileItem)
           }
-        }
-        this.isDownloading = false
+        })
       }
     },
 
+    startDownload2(taskId){
+      ipcRenderer.send('startDownloadTask', {
+        message: taskId
+      })
+    },
+
+    doDownload(obj){
+      return new Promise((resolve, reject) => {
+        console.log('========5555',encodeURI(JSON.stringify(obj)))
+        ipcRenderer.send('startDownloadTask', {
+          message: obj
+        })
+      })
+    },
+
+    async startDownload (taskId) {
+      console.log('------path', this.$estore.get('downloadFold'))
+      // console.log('this.taskList',this.taskList)
+      // 1. 获取当前下载任务
+      const currentTask = this.taskList.find(item => item.taskId === taskId)
+      currentTask.status = 1
+      const fileList = currentTask.fileList
+      // 2. 获取当前任务池队列
+      // let taskPond = this.$estore.get('taskPond') || []
+      // 3. 将下载任务插入任务池中，状态改为待下载
+      fileList.map(item => {
+        item.status = 1
+        // taskPond.push(item)
+      })
+      // this.$estore.set('taskPond', taskPond)
+      // console.log('====taskPond: ',this.$estore.get('taskPond'))
+      for (let i = 0; i < fileList.length; i++) {
+        // console.log(currentTask.status, fileList[i].downloaded)
+        if (currentTask.status === 1) {
+          if (!fileList[i].downloaded) {
+            console.log(fileList[i].savePath, fileList[i].fold)
+            await loadData.download(fileList[i].url, fileList[i].savePath, fileList[i].fold)
+            // await this.doDownload({
+            //   url: fileList[i].url, 
+            //   savePath: fileList[i].savePath, 
+            //   fold: fileList[i].fold
+            // })
+            fileList[i].downloaded = true
+          }
+        } else {
+          break
+        }
+      }
+      this.taskCount --
+    }, 
+
+    pauseDownload (taskId) {
+      // 1. 获取当前下载任务
+      const currentTask = this.taskList.find(item => item.taskId === taskId)
+      currentTask.status = 0
+      // const fileList = currentTask.fileList
+      // 2. 获取当前任务池队列
+      // let taskPond = this.$estore.get('taskPond') || []
+      // 3. 将当前任务移除下载队列，状态改为暂停下载
+      // fileList.map(item => {
+      //   item.status = 0
+      //   const index = taskPond.findIndex(it => it.id === item.id)
+      //   taskPond.splice(index, 1)
+      // })
+      // this.$estore.set('taskPond', taskPond)
+      // console.log('====taskPond: ',this.$estore.get('taskPond'), fileList)
+    },
+    handleType (val) {
+      if (val === 'cloudAlbum') {
+        return {
+          name: '云相册',
+          icon: 'd'
+        }
+      }
+      if (val === 'photoLive') {
+        return {
+          name: '照片直播',
+          icon: 'b'
+        }
+      }
+      if (val === 'file') {
+        return {
+          name: '文件',
+          icon: 'e'
+        }
+      }
+      if (val === 'fold') {
+        return {
+          name: '文件夹',
+          icon: 'f'
+        }
+      }
+      if (val === 'shareFold') {
+        return {
+          name: '分享文件夹',
+          icon: 'a'
+        }
+      }
+    },
     async getCurrentUser () {
       const token = localStorage.getItem('x_token')
       const refresh_token = localStorage.getItem('x_refresh_token')
       if (token) {
-        console.log(token)
         const res = await api.getUserInfo(res => {
           const userInfo = {
             id: res.data.id,
@@ -496,7 +465,6 @@ export default {
           // 刷新token
           if (refresh_token) {
             api.refreshToken(refresh_token, res => {
-              console.log('++++++', res)
               // 把新的令牌存储进去
               if (res && res.status === 200) {
                 const token = `${res.data.token_type} ${res.data.access_token}`
@@ -509,7 +477,7 @@ export default {
                 })
               }
             }, err => {
-              console.log('++++error', err)
+              // console.log('++++error', err)
             })
           } else {
             this.$router.replace({
@@ -523,206 +491,386 @@ export default {
         })
       }
     },
+    logout () {
+      if (window.confirm('是否退出登录？')) {
+        localStorage.clear()
+        this.$router.replace({
+          path: '/login'
+        })
+      }
+    },
+    listenScroll () {
+      // 根据下拉更改头部高度
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+          this.scaleMin = true
+        } else {
+          this.scaleMin = false
+        }
+      }, false)
+    },
+    // 监听下载器动作
+    listenIPC () {
+      ipcRenderer.on('initConfig', (event, arg) => {
+        console.log('监听到了配置变化：', decodeURI(arg))
+        if (decodeURI(arg).length > 0) {
+          this.loading = true
+          ipcRenderer.send('createNewWindow', {
+            message: decodeURI(arg)
+          })
+        }
+      })
 
-    async pauseDownload () {
-      this.isDownloading = false
+      ipcRenderer.on('loadingTask', (event, arg) => {
+        console.log('======loading', arg)
+        this.loading = arg
+      })
+
+      ipcRenderer.on('console', (event, arg) => {
+        console.log(arg)
+      })
+
+      ipcRenderer.on('alert', (event, arg) => {
+        alert(arg)
+      })
+
+      ipcRenderer.on('pushTask', (event, arg) => {
+        this.taskList.push(arg)
+      })
+    },
+    async init (taskConfig) {
+      // console.log('====3333',taskConfig)
+      // this.taskList = []
+      this.loading = true
+      try {
+        if (taskConfig) {
+          // 解析任务数据
+          this.$estore.set('env', taskConfig.env)
+          // 构建下载队列
+          const list = taskConfig.downloadList
+          console.log('&&&&当前任务队列数量', list.length)
+          for (let j = 0; j < list.length; j++) {
+            if (list[j].downloadType === 'photoLive') {
+              console.log('=====1')
+              // 是照片直播
+              const taskItem = await downloadPhotoLive(list[j])
+              console.log(222222, taskItem)
+              // console.log(taskItem)
+              this.taskList.push(taskItem) 
+              this.loading = false
+            }
+            if (list[j].downloadType === 'cloudAlbum') {
+              // 是照片直播
+              const taskItem = await downloadCloudAlbum(list[j])
+              // console.log(taskItem)
+              this.taskList.push(taskItem)
+            }
+            if (list[j].downloadType === 'file') {
+              // 是文件下载
+              const taskItem = await downloadFile(list[j])
+              // console.log('*****',taskItem)
+              this.taskList.push(taskItem)
+            }
+            if (list[j].downloadType === 'shareFold') {
+              // 是分享文件夹下载
+              // console.log('#############')
+              const taskItem = await downloadShareFold(list[j])
+              console.log('是分享文件夹下载',taskItem)
+              this.taskList.push(taskItem)
+            }
+            if (list[j].downloadType === 'fold') {
+              // 是文件夹下载
+              console.log('是文件夹下载#############', list[j])
+              const taskItem = await downloadFold(list[j])
+              console.log('是文件夹下载',taskItem)
+              this.taskList.push(taskItem) 
+            }
+          }
+          this.loading = false
+          console.log(this.taskList)
+        }
+      } catch (e) {
+        console.log('%%%%%% %%')
+        this.loading = false
+      }
     }
   },
   async mounted () {
-    this.downloadFold = this.$estore.get('downloadFold')
-    this.listenIPC()
+    // =====思路如下=====
+      // 新建一个窗口
+      // 将str传递给该窗口
+      // 在窗口中执行该解析方法
+      // 将解析后的内容传递给本窗口
+      // 关闭窗口
+    // console.log(this.$estore.get('downloadFold'))
+    // this.$estore.set('downloadTask', {})
+    this.listenScroll()
     await this.getCurrentUser()
-    this.init()
+    this.listenIPC()
+    // 获取配置文件
+    // this.taskConfig = this.$estore.get('downloadTask')·
+    // console.log('=====',this.taskConfig)
+    // if(this.taskConfig){  
+    //   this.init(this.taskConfig)
+    // }
+    // this.init(this.taskConfig)
+    // console.log('process.versions',process.versions)
   }
 }
 </script>
 <style lang="scss" scoped>
 .index-container {
-  padding: 0 20px;
+  position: relative;
+  color: #4b4b4b;
 
-  .tipss {
-    width: 130px;
-    display: block;
-  }
-
-  .loading {
+  .mask {
     width: 100%;
     height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    background: #fff;
     position: fixed;
     top: 0;
     left: 0;
+    z-index: 998;
+
+    textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      background: #efefef;
+      border-radius: 10px;
+      border: 0;
+    }
+
+    .cancel {
+      background: #efefef;
+      color: #000;
+      padding: 20px 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 35px;
+      border-radius: 10px;
+      font-size: 12px;
+      margin-bottom: 10px;
+
+      &:hover {
+        cursor: pointer;
+      }
+    }
+
+    .ok {
+      background: #000;
+      color: #fff;
+      padding: 20px 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 35px;
+      border-radius: 10px;
+      font-size: 12px;
+      margin-bottom: 10px;
+
+      &:hover {
+        cursor: pointer;
+      }
+    }
+  }
+
+  .icon-delete {
+    color: #999;
+  }
+  .header {
+    height: 80px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-sizing: border-box;
+    position: fixed;
     background: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 14px;
-    flex-direction: column;
-
-    .gif {
-      width: 100px;
-    }
-
-    .avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      // background: red;
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: center center;
-      margin-bottom: 100px;
-    }
-
-    .tipss {
-      width: 230px;
-    }
-  }
-
-  .top {
     width: 100%;
-    height: 330px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-    .gif {
-      width: 80px;
-    }
-
-    .avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      // background: red;
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: center center;
-    }
-
-    h1 {
-      font-size: 16px;
-      margin-top: 40px;
-    }
-  }
-
-  .bottom {
-    font-size: 13px;
-    color: #333;
-    line-height: 30px;
+    left: 0;
+    top: -20px;
+    transition: all 0.3s;
+    border-bottom: 0.5px solid #efefef;
+    z-index: 10;
 
     .title {
-      input {
-        font-weight: 900;
+      font-size: 24px;
+      transition: all 0.3s;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      background: black;
+      border-radius: 50%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      transition: all 0.3s;
+
+      &:hover {
+        cursor: pointer;
+        filter: brightness(80%);
       }
     }
+  }
 
-    .t {
-      // background: rgba(0, 0, 0, 0.05);
-      font-size: 13px;
-      border-radius: 4px;
+  .scale {
+    height: 40px;
+    .title {
+      font-size: 16px;
     }
+    .avatar {
+      width: 20px;
+      height: 20px;
+    }
+  }
 
-    input {
-      background: none;
-      border: none;
-      flex: 1;
-      display: inline-flex;
+  .download-list {
+    padding-bottom: 80px;
+    padding-top: 80px;
+
+    .tip {
+      font-size: 80px;
+      color: #666;
       width: 100%;
-      outline: none;
-      font-size: 13px;
+      text-align: center;
+      margin-top: 30vh;
     }
 
-    .grey {
-      color: rgb(187, 187, 187);
-    }
-
-    .save-path {
+    .item {
       display: flex;
-      margin-top: 0px;
-      // background: rgba(0, 0, 0, 0.05);
-      border-radius: 5px;
+      padding: 0 15px;
       box-sizing: border-box;
       justify-content: flex-start;
+      font-weight: 600;
+      align-items: center;
+      height: 50px;
+      position: relative;
 
-      .content {
-        flex: 1;
-
-        input {
-          background: none;
-          border: none;
-          flex: 1;
-          display: inline-flex;
-          width: 100%;
-          outline: none;
-        }
+      .process-mask {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f4f4f8;
+        z-index: -1;
       }
 
-      .choose {
+      &:hover {
+        background: #efefef;
+        cursor: pointer;
+      }
+
+      .symbol {
+        // background: #000000;
+        font-size: 23px;
+        width: 30px;
+        display: flex;
+        align-items: center;
+        color: #fff;
+        margin-right: 10px;
+        // background: #f3f3f3;
+        height: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+      }
+
+      .symbol2 {
+        font-size: 10px;
+        border-radius: 5px;
+        font-weight: 400;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        color: #989898;
+        margin-right: 5px;
+        line-height: 18px;
+      }
+
+      .name {
+        font-size: 14px;
+        flex: 1;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .process {
+        font-size: 14px;
+        width: 60px;
+        text-align: center;
+      }
+
+      .handle-wrapper {
+        display: flex;
+        width: 50px;
+        justify-content: space-around;
+        .icon-start {
+          color: #666;
+        }
+        .icon-start,
+        .icon-delete {
+          &:hover {
+            color: #000;
+          }
+        }
+      }
+    }
+  }
+
+  .footer {
+    background: #f4f4f8;
+    border-radius: 30px 30px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px 0 20px;
+    box-sizing: border-box;
+
+    .logo {
+      font-weight: 900;
+      font-size: 120px;
+      position: relative;
+      .version{
+            position: absolute;
+    color: #c1c1c1;
+    z-index: 2;
+    bottom: 76px;
+    left: 126px;
+    font-size: 9px;
+      }
+      &:hover {
+        cursor: pointer;
         color: #000;
-        padding: 0 0 0 15px;
+      }
+    }
+
+    .handle-wrapper {
+      display: flex;
+      width: 160px;
+      padding-right: 10px;
+      justify-content: space-around;
+      .icon-start,
+      .icon-delete {
+        font-size: 25px;
         &:hover {
           cursor: pointer;
-          color: #333;
-        }
-      }
-
-      .disable {
-        color: grey;
-        padding: 0 0 0 15px;
-        &:hover {
-          cursor: default;
-          color: grey;
+          color: #000;
         }
       }
     }
-  }
-
-  .btn {
-    color: #fff;
-    font-size: 16px;
-    letter-spacing: 1px;
-    background: #000;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 17px;
-    margin-top: 20px;
-    font-weight: 900;
-
-    &:hover {
-      cursor: pointer;
-      background: #333;
-    }
-  }
-
-  .pause {
-    color: #000;
-    font-size: 16px;
-    letter-spacing: 1px;
-    background: #ffff33;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 17px;
-    margin-top: 20px;
-    font-weight: 900;
-
-    &:hover {
-      cursor: pointer;
-      background: #e0e02b;
-    }
-  }
-
-  .finish {
-    color: #000;
-  }
-
-  .finish-btn {
-    background: #000;
-    color: #fff;
   }
 }
 </style>
