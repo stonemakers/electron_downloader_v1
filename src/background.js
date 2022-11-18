@@ -244,8 +244,10 @@ app.on('ready', async () => {
 
   // 窗口加载成功
   ipcMain.on('window-load-success', (event, arg) => {
-    nwin.webContents.send('loadFinished', taskStr)
-  })
+    if(nwin){
+      nwin.webContents.send('loadFinished', taskStr)
+    }
+  }) 
 
   // 窗口加载状态通知
   ipcMain.on('loadingTask', (event, arg) => {
@@ -260,7 +262,10 @@ app.on('ready', async () => {
 
   ipcMain.on('destroy', (event, arg) => {
     // win.webContents.send('pushTask', arg)
-    // nwin.destroy()
+    if(nwin){
+      nwin.destroy()
+      nwin = null
+    }
   })
 
   ipcMain.on('alert', (event, arg) => {

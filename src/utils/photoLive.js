@@ -28,7 +28,7 @@ export default async (config) => {
       // 4. 返回任务
       resolve({
         type: config.downloadType,
-        taskId: new Date().getTime() + parseInt(Math.random() * 1000),
+        taskId: Math.random().toString(16),
         liveId: config.id,
         title: title,
         status: 0,
@@ -117,20 +117,31 @@ const getCategoryList = async (id, arg) => {
 // 合成下载列表
 const combineDownloadList = (config, title, photoList, categoryList, watermark) => {
   let fileList = []
+  if(photoList.length>0){
   photoList.map(item => {
     console.log('99999', item, config)
     const categoryId = config.sourceType === 'publish' ? item.categoryId : item.originalCategoryId?item.originalCategoryId:item.categoryId
     const categoryName = getCategoryNameById(categoryId, categoryList) || '默认分类'
     console.log('categoryName', categoryName)
-    fileList.push({
+    fileList.push({ 
       id: item.id,
       url: config.sourceWatermark==='true'? item.url + '&' + watermark : item.url,
       savePath: `${fmtStr(title)}/${fmtStr(categoryName)}/${item.name}`,
       fold: `${fmtStr(title)}/${fmtStr(categoryName)}`,
-      downloaded: false,
+      downloaded: false, 
       status: 0 // 0:暂停下载 1: 待下载
     })
   })
+}else{
+  fileList.push({
+    id: Math.random().toString(16),
+    url: '',
+    savePath: `${fmtStr(title)}`,
+    fold: `${fmtStr(title)}`,
+    downloaded: false,
+    status: 0 // 0:暂停下载 1: 待下载
+  })
+}
   return fileList
 }
 

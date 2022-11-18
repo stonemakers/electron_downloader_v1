@@ -89,6 +89,15 @@ export default {
                     this.$router.replace({
                       path: '/'
                     })
+                    // 清空数据
+                    this.phoneNo = ''
+                    this.time = 60
+                    this.code = ''
+                    this.sendStatus = false
+                    this.disabledBtn = false
+                    if(this.interval){
+                      window.clearInterval(this.interval)
+                    }
                   },
                   err => {
                     alert(err)
@@ -171,7 +180,7 @@ export default {
   box-sizing: border-box;
   .cover {
     width: 100%;
-    height: 300px;
+    height: 320px;
     // background: blue;
     display: flex;
     justify-content: center;

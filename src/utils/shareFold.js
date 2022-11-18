@@ -23,6 +23,7 @@ export default async (config) => {
           // 校验通过
           const fold = await api.getFold(config.id, config.password)
           folds = fold.data.directories
+          console.log('folds', folds)
           const l = fold.data.files
           for (let i = 0; i < l.length; i++) {
             fileList.push({
@@ -37,9 +38,21 @@ export default async (config) => {
             await recursionFold(folds[i].expandToken, folds[i].name, path)
           }
           console.log('====fileList', fileList)
+
+          if(fileList.length===0){
+            fileList.push({
+              id: Math.random().toString(16),
+              url: '', 
+              savePath: `${path}`,
+              fold: `${path}`,
+              downloaded: false,
+              status: 0 // 0:暂停下载 1: 待下载1
+            })
+          }
+
           resolve({
             type: config.downloadType,
-            taskId: new Date().getTime() + parseInt(Math.random() * 1000),
+            taskId: Math.random().toString(16),
             title: '分享的文件',
             status: 0,
             fileList: fileList,
@@ -56,6 +69,7 @@ export default async (config) => {
           // 校验通过
           const fold = await api.getFold(config.id, config.password)
           folds = fold.data.directories
+          console.log('folds', folds)
           const l = fold.data.files
           for (let i = 0; i < l.length; i++) {
             fileList.push({
@@ -70,11 +84,24 @@ export default async (config) => {
             await recursionFold(folds[i].expandToken, folds[i].name, path)
           }
           // console.log('====fileList', fileList)
+
+          // if(fileList.length===0){
+          //   fileList.push({
+          //     id: Math.random().toString(16),
+          //     url: '', 
+          //     savePath: `${path}`,
+          //     fold: `${path}`,
+          //     downloaded: false,
+          //     status: 0 // 0:暂停下载 1: 待下载1
+          //   })
+          // }
+
           resolve({
             type: config.downloadType,
-            taskId: new Date().getTime() + parseInt(Math.random() * 1000),
-            title: '分享文件合集',
+            taskId: Math.random().toString(16),
+            title: '分享的文件',
             status: 0,
+            finished: false,
             fileList: fileList
           })
         } else {
@@ -100,14 +127,15 @@ async function recursionFold (token, name, p) {
       limit: 100,
       offset: 0
     })
+    console.log('=====res', res.data)
 
+    if(res.data.total>0){
     for (let j = 0; j < Math.ceil(res.data.total / 100); j++) {
       const _res = await api.getChildFold({
         expandToken: token,
         limit: 100,
         offset: j * 100
       })
-
       const l = _res.data.files
       for (let i = 0; i < l.length; i++) {
         fileList.push({
@@ -120,6 +148,18 @@ async function recursionFold (token, name, p) {
       }
       foldArr.push(..._res.data.directories)
     }
+  }else{
+    fileList.push({
+      url: '',
+      savePath: `${nPath}`,
+      fold: `${nPath}`,
+      downloaded: false,
+      status: 0 // 0:暂停下载 1: 待下载
+    })
+  }
+
+
+
     for (let i = 0; i < foldArr.length; i++) {
       await recursionFold(foldArr[i].expandToken, foldArr[i].name, p + '/' + name)
     }

@@ -70,18 +70,30 @@ const getCategoryList = async (id) => {
 // 合成下载列表
 const combineDownloadList = (config, title, photoList, categoryList, watermark) => {
   let fileList = []
-  photoList.map(item => {
-    const categoryId = item.categoryId
-    const categoryName = getCategoryNameById(categoryId, categoryList)
-    fileList.push({
-      id: item.id,
-      url: config.sourceWatermark==='true' ? item.url + '&' + watermark : item.url,
-      savePath: `${fmtStr(title)}/${fmtStr(categoryName)}/${item.name}`,
-      fold: `${fmtStr(title)}/${fmtStr(categoryName)}`,
-      downloaded: false,
-      status: 0 // 0:暂停下载 1: 待下载
+  if(photoList.length>0){
+    photoList.map(item => {
+      const categoryId = item.categoryId
+      const categoryName = getCategoryNameById(categoryId, categoryList)
+      fileList.push({
+        id: item.id,
+        url: config.sourceWatermark==='true' ? item.url + '&' + watermark : item.url,
+        savePath: `${fmtStr(title)}/${fmtStr(categoryName)}/${item.name}`,
+        fold: `${fmtStr(title)}/${fmtStr(categoryName)}`,
+        downloaded: false,
+        status: 0 // 0:暂停下载 1: 待下载
+      })
     })
-  })
+  }else{
+    fileList.push({
+      id: Math.random().toString(16),
+      url: '', 
+      savePath: `${fmtStr(title)}`,
+      fold: `${fmtStr(title)}`,
+      downloaded: false,
+      status: 0 // 0:暂停下载 1: 待下载1
+    })
+  }
+  
   return fileList
 }
 

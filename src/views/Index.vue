@@ -38,7 +38,7 @@
 
         <section class="name"
                  v-if="item"
-                 :title="item.title">{{ item.title }}
+                 :title="item.title">{{item.title}}
           <section class="symbol2"
                    v-if="item.type==='photoLive'">{{handleType(item.type).name}} {{ (item.desc.source==='origin'?'原片':'发布') }} | {{ item.desc.sourceType==='origin'?'原片分类':'发布分类'}} | {{item.desc.sourceWatermark==='true'?'水印':'无印' }}</section>
           <section class="symbol2"
@@ -78,7 +78,7 @@
       <p class="tip">
         <x-icon type="none"></x-icon>
       </p>
-      
+
     </section>
 
     <!-- 底栏 -->
@@ -93,17 +93,20 @@
                  title="新建任务">
           <x-icon type="add"></x-icon>
         </section>
-        <section class="icon-start" @click="startAllTask"
-        v-if="!startAll || taskCount===0"
+        <section class="icon-start"
+                 @click="startAllTask"
+                 v-if="!startAll || taskCount===0"
                  title="全部开始">
           <x-icon type="start"></x-icon>
-        </section> 
-        <section class="icon-start" @click="pauseAll"
-        v-else
+        </section>
+        <section class="icon-start"
+                 @click="pauseAll"
+                 v-else
                  title="全部暂停">
           <x-icon type="pause"></x-icon>
         </section>
-        <section class="icon-start" @click="deleteAll"
+        <section class="icon-start"
+                 @click="deleteAll"
                  title="全部删除">
           <x-icon type="close"></x-icon>
         </section>
@@ -222,17 +225,17 @@ export default {
     cancelHandle () {
       this.showAdd = false
     },
-    openFold(task){
+    openFold (task) {
       if (ipcRenderer) {
-        if(task.type==='file'){
+        if (task.type === 'file') {
           ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold'))
-        }else{
-          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold')+'/'+task.title)
+        } else {
+          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold') + '/' + task.title)
         }
-        
+
       }
     },
-    startHandle(str){
+    startHandle (str) {
       // =====思路如下=====
       // 新建一个窗口
       // 将str传递给该窗口
@@ -258,15 +261,18 @@ export default {
     },
     // 计算进度
     calcProcess (task) {
-      // console.log('计算进度', task)
-      // console.log('=====',task)
-      // console.log('finished', task.fileList.filter(item => item.downloaded === true).length)
       if (task) {
-        const p = parseInt(task.fileList.filter(item => item.downloaded === true).length / (task.fileList.length !== 0 ? task.fileList.length : 1) * 100)
-        // console.log('====1', task.fileList.filter(item => item.downloaded === true).length)
-        // console.log('====2', task.fileList.length)
+        let p
+        const downloadedCount = task.fileList.filter(item => item.downloaded === true).length
+        const totalCount = task.fileList.length
+
+        if (totalCount === 0) {
+          p = 100
+        } else {
+          p = parseInt(downloadedCount / totalCount * 100)
+        }
+
         if (p === 100) {
-          // let index = this.taskList.findIndex(item => item.taskId === task.taskId)
           task.finished = true
         }
         return p
@@ -305,25 +311,29 @@ export default {
       }
       return fl
     },
-    startAllTask(){
+    async startAllTask () {
       this.taskCount = this.taskList.length
       this.startAll = true
-      this.taskList.map(item => {
-        this.startDownload(item.taskId)
-      })
+
+      for(let i =0;i<this.taskList.length;i++){
+        this.startDownload(this.taskList[i].taskId)
+      }
     },
-    pauseAll(){
+    pauseAll () {
       this.startAll = false
-      this.taskList.map(item => {
-        this.pauseDownload(item.taskId)
-      })
+      // this.taskList.map(item => {
+      //   this.pauseDownload(item.taskId)
+      // })
+      for(let i =0;i<this.taskList.length;i++){
+        this.pauseDownload(this.taskList[i].taskId)
+      }
     },
-    deleteAll(){
+    deleteAll () {
       // console.log(this.taskList, this.taskList.length)
       const list = this.taskList.concat()
       console.log('list', list)
-      if(window.confirm('确认删除所有项目么')){
-        for(let i = 0; i<list.length; i++){
+      if (window.confirm('确认删除所有项目么')) {
+        for (let i = 0; i < list.length; i++) {
           console.log(i)
           this.removeDownload(list[i].taskId)
         }
@@ -349,15 +359,15 @@ export default {
       }
     },
 
-    startDownload2(taskId){
+    startDownload2 (taskId) {
       ipcRenderer.send('startDownloadTask', {
         message: taskId
       })
     },
 
-    doDownload(obj){
+    doDownload (obj) {
       return new Promise((resolve, reject) => {
-        console.log('========5555',encodeURI(JSON.stringify(obj)))
+        console.log('========5555', encodeURI(JSON.stringify(obj)))
         ipcRenderer.send('startDownloadTask', {
           message: obj
         })
@@ -368,9 +378,14 @@ export default {
       console.log('------path', this.$estore.get('downloadFold'))
       // console.log('this.taskList',this.taskList)
       // 1. 获取当前下载任务
-      const currentTask = this.taskList.find(item => item.taskId === taskId)
+      console.log('111', taskId)
+      const currentTask = await this.taskList.find(item => item.taskId === taskId)
+      console.log('222', currentTask)
       currentTask.status = 1
+      // this.taskList.find(item => item.taskId === taskId).status = 1
+      // this.$set(currentTask, 'status', 1)
       const fileList = currentTask.fileList
+      
       // 2. 获取当前任务池队列
       // let taskPond = this.$estore.get('taskPond') || []
       // 3. 将下载任务插入任务池中，状态改为待下载
@@ -378,6 +393,7 @@ export default {
         item.status = 1
         // taskPond.push(item)
       })
+      console.log('333', fileList)
       // this.$estore.set('taskPond', taskPond)
       // console.log('====taskPond: ',this.$estore.get('taskPond'))
       for (let i = 0; i < fileList.length; i++) {
@@ -397,8 +413,8 @@ export default {
           break
         }
       }
-      this.taskCount --
-    }, 
+      this.taskCount--
+    },
 
     pauseDownload (taskId) {
       // 1. 获取当前下载任务
@@ -513,11 +529,15 @@ export default {
     listenIPC () {
       ipcRenderer.on('initConfig', (event, arg) => {
         console.log('监听到了配置变化：', decodeURI(arg))
-        if (decodeURI(arg).length > 0) {
-          this.loading = true
-          ipcRenderer.send('createNewWindow', {
-            message: decodeURI(arg)
-          })
+        // 若用户未登录，则不跳转
+
+        if (this.userInfo.id) {
+          if (decodeURI(arg).length > 0) {
+            this.loading = true
+            ipcRenderer.send('createNewWindow', {
+              message: decodeURI(arg)
+            })
+          }
         }
       })
 
@@ -556,7 +576,7 @@ export default {
               const taskItem = await downloadPhotoLive(list[j])
               console.log(222222, taskItem)
               // console.log(taskItem)
-              this.taskList.push(taskItem) 
+              this.taskList.push(taskItem)
               this.loading = false
             }
             if (list[j].downloadType === 'cloudAlbum') {
@@ -575,15 +595,15 @@ export default {
               // 是分享文件夹下载
               // console.log('#############')
               const taskItem = await downloadShareFold(list[j])
-              console.log('是分享文件夹下载',taskItem)
+              console.log('是分享文件夹下载', taskItem)
               this.taskList.push(taskItem)
             }
             if (list[j].downloadType === 'fold') {
               // 是文件夹下载
               console.log('是文件夹下载#############', list[j])
               const taskItem = await downloadFold(list[j])
-              console.log('是文件夹下载',taskItem)
-              this.taskList.push(taskItem) 
+              console.log('是文件夹下载', taskItem)
+              this.taskList.push(taskItem)
             }
           }
           this.loading = false
@@ -597,11 +617,11 @@ export default {
   },
   async mounted () {
     // =====思路如下=====
-      // 新建一个窗口
-      // 将str传递给该窗口
-      // 在窗口中执行该解析方法
-      // 将解析后的内容传递给本窗口
-      // 关闭窗口
+    // 新建一个窗口
+    // 将str传递给该窗口
+    // 在窗口中执行该解析方法
+    // 将解析后的内容传递给本窗口
+    // 关闭窗口
     // console.log(this.$estore.get('downloadFold'))
     // this.$estore.set('downloadTask', {})
     this.listenScroll()
@@ -734,11 +754,11 @@ export default {
     padding-top: 80px;
 
     .tip {
-      font-size: 80px;
+      font-size: 100px;
       color: #666;
       width: 100%;
       text-align: center;
-      margin-top: 30vh;
+      margin-top: 20vh;
     }
 
     .item {
@@ -843,13 +863,13 @@ export default {
       font-weight: 900;
       font-size: 120px;
       position: relative;
-      .version{
-            position: absolute;
-    color: #c1c1c1;
-    z-index: 2;
-    bottom: 76px;
-    left: 126px;
-    font-size: 9px;
+      .version {
+        position: absolute;
+        color: #c1c1c1;
+        z-index: 2;
+        bottom: 76px;
+        left: 126px;
+        font-size: 9px;
       }
       &:hover {
         cursor: pointer;

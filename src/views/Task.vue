@@ -92,6 +92,7 @@ export default {
           }
           // this.loading = false /////////////////////
           ipcRenderer.send('loadingTask', false)
+          ipcRenderer.send('destroy')
         }
       } catch (e) {
         console.log('%%%%%% %%')

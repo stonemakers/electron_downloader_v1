@@ -21,14 +21,26 @@ export default async config => {
      
       await recursionFold(config.id, title, path)
 
+      if(fileList.length===0){
+        fileList.push({
+          id: Math.random().toString(16),
+          url: '', 
+          savePath: `${fmtStr(title)}`,
+          fold: `${fmtStr(title)}`,
+          downloaded: false,
+          status: 0 // 0:暂停下载 1: 待下载1
+        })
+      }
+      
       resolve({
         type: config.downloadType,
-        taskId: new Date().getTime() + parseInt(Math.random() * 1000),
+        taskId: Math.random().toString(16),
         title: title,
         status: 0,
         fileList: fileList,
         finished: false
       })
+      
     } catch (e) {
       ipcRenderer.send('alert', '无文件夹访问权限，请加入协作者重试')
       // alert('无文件夹访问权限，请加入协作者重试')
@@ -73,5 +85,14 @@ async function recursionFold (id, name, p) {
   }
   for (let i = 0; i < foldArr.length; i++) {
     await recursionFold(foldArr[i].id, foldArr[i].name, p + '/' + name)
+  }
+}
+
+// 格式化路径
+function fmtStr (text) {
+  if(text){
+    return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
+  }else{
+    return ''
   }
 }

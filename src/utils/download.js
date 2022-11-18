@@ -35,6 +35,7 @@ export default {
       let totalSize = 0
       let receivedBytes = 0
       // console.log('url:=====', url)
+      if(url){
       const headers = await this.getHeaders(url)
       // console.log("++++++headers", headers)
       if (headers['content-range']) {
@@ -109,6 +110,13 @@ export default {
           out.end()
           resolve()
         })
+      }else{
+        fs.mkdirSync(store.get('downloadFold')+'/'+foldPath, { recursive: true }, err => {
+          console.log('--- download.js - > 创建文件夹错误', err)
+        })
+        resolve()
+      }
     })
-  },
+  }
+  
 }
