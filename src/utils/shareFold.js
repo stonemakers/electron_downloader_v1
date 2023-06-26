@@ -39,21 +39,30 @@ export default async (config) => {
           }
           console.log('====fileList', fileList)
 
-          if(fileList.length===0){
+          if (fileList.length === 0) {
             fileList.push({
               id: Math.random().toString(16),
-              url: '', 
+              url: '',
               savePath: `${path}`,
               fold: `${path}`,
               downloaded: false,
               status: 0 // 0:暂停下载 1: 待下载1
             })
           }
+          let title = '分享的文件'
+          const dTask = JSON.parse(window.localStorage.getItem('dTask'))
+          if (dTask) {
+            dTask.map(item => {
+              if (item.title === title) {
+                title += '_1'
+              }
+            })
+          }
 
           resolve({
             type: config.downloadType,
             taskId: Math.random().toString(16),
-            title: '分享的文件',
+            title: title,
             status: 0,
             fileList: fileList,
             finished: false
@@ -115,7 +124,7 @@ export default async (config) => {
   })
 }
 // 递归文件夹
-async function recursionFold (token, name, p) {
+async function recursionFold(token, name, p) {
   // console.log('===name', name)
   // console.log('===p', p)
   let nPath = p + '/' + name
@@ -129,34 +138,34 @@ async function recursionFold (token, name, p) {
     })
     console.log('=====res', res.data)
 
-    if(res.data.total>0){
-    for (let j = 0; j < Math.ceil(res.data.total / 100); j++) {
-      const _res = await api.getChildFold({
-        expandToken: token,
-        limit: 100,
-        offset: j * 100
-      })
-      const l = _res.data.files
-      for (let i = 0; i < l.length; i++) {
-        fileList.push({
-          url: l[i].url,
-          savePath: `${nPath}/${l[i].name}`,
-          fold: `${nPath}`,
-          downloaded: false,
-          status: 0 // 0:暂停下载 1: 待下载
+    if (res.data.total > 0) {
+      for (let j = 0; j < Math.ceil(res.data.total / 100); j++) {
+        const _res = await api.getChildFold({
+          expandToken: token,
+          limit: 100,
+          offset: j * 100
         })
+        const l = _res.data.files
+        for (let i = 0; i < l.length; i++) {
+          fileList.push({
+            url: l[i].url,
+            savePath: `${nPath}/${l[i].name}`,
+            fold: `${nPath}`,
+            downloaded: false,
+            status: 0 // 0:暂停下载 1: 待下载
+          })
+        }
+        foldArr.push(..._res.data.directories)
       }
-      foldArr.push(..._res.data.directories)
+    } else {
+      fileList.push({
+        url: '',
+        savePath: `${nPath}`,
+        fold: `${nPath}`,
+        downloaded: false,
+        status: 0 // 0:暂停下载 1: 待下载
+      })
     }
-  }else{
-    fileList.push({
-      url: '',
-      savePath: `${nPath}`,
-      fold: `${nPath}`,
-      downloaded: false,
-      status: 0 // 0:暂停下载 1: 待下载
-    })
-  }
 
 
 

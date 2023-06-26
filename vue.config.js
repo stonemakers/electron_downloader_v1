@@ -11,10 +11,12 @@ module.exports = {
       builderOptions: {
         appId: 'cc.lightio.lightioCloudDiskDownloader',
         mac: {
-          icon: './public/icon/app.png'
+          icon: './public/icon/app.png',
+          artifactName: "${productName}-${version}.${ext}"
         },
         win: {
-          icon: './public/icon/app.ico'
+          icon: './public/icon/app.ico',
+          artifactName: "${productName}-${version}.${ext}"
         },
         productName: 'LightIO'
       }

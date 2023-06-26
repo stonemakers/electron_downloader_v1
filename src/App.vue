@@ -1,10 +1,27 @@
 <template>
   <div id="app">
     <keep-alive>
-    <router-view />
+      <router-view />
     </keep-alive>
+    <!-- <upload></upload> -->
   </div>
 </template>
+
+<script>
+// import Upload from '@/views/Update.vue'
+
+export default {
+  components: {
+    // Upload
+  },
+  props: {},
+  data() {
+    return {}
+  },
+  computed: {},
+  methods: {}
+}
+</script>
 
 <style lang="scss">
 html,

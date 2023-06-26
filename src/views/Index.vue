@@ -3,82 +3,66 @@
     <!-- loading -->
     <x-loading v-if="loading"></x-loading>
     <!-- 任務解析 -->
-    <section class="mask"
-             v-if="showAdd">
+    <section class="mask" v-if="showAdd">
       <h1>请输入解析网址</h1>
-      <textarea name=""
-                id=""
-                rows="10"
-                v-model="urlStr"></textarea>
-      <section class="ok"
-               @click="startHandle(urlStr)">开始解析</section>
-      <section class="cancel"
-               @click="cancelHandle">返回</section>
+      <textarea name="" id="" rows="10" v-model="urlStr"></textarea>
+      <section class="ok" @click="startHandle(urlStr)">开始解析</section>
+      <section class="cancel" @click="cancelHandle">返回</section>
     </section>
-    <section class="header"
-             :class="{scale: scaleMin}">
-      <h1 class="title">正在下载 {{taskList.length}}</h1>
-      <section class="avatar"
-               @click="logout"
-               :style="{backgroundImage:  `url(${userInfo.avatar})`}"></section>
+    <section class="header" :class="{ scale: scaleMin }">
+      <h1 class="title">正在下载 {{ taskList.length }}</h1>
+      <section class="avatar" @click="logout" :style="{ backgroundImage: `url(${userInfo.avatar})` }"></section>
     </section>
 
     <!-- 下载列表 -->
-    <section class="download-list"
-             v-if="taskList.length>0">
-      <section class="item"
-               v-for="(item, index) in taskList"
-               :key="index">
-        <section class="process-mask"
-                 :style="{width: calcProcess(item)+'%'}"></section>
-        <section class="symbol"
-                 v-if="item">
+    <section class="download-list" v-if="taskList.length > 0">
+      <section class="item" v-for="(item, index) in taskList" :key="index">
+        <section class="process-mask" :style="{ width: calcProcess(item) + '%' }"></section>
+        <section class="symbol" v-if="item">
           <x-icon :type="handleType(item.type).icon"></x-icon>
         </section>
 
-        <section class="name"
-                 v-if="item"
-                 :title="item.title">{{item.title}}
-          <section class="symbol2"
-                   v-if="item.type==='photoLive'">{{handleType(item.type).name}} {{ (item.desc.source==='origin'?'原片':'发布') }} | {{ item.desc.sourceType==='origin'?'原片分类':'发布分类'}} | {{item.desc.sourceWatermark==='true'?'水印':'无印' }}</section>
-          <section class="symbol2"
-                   v-else>{{handleType(item.type).name}}</section>
+        <section class="name" v-if="item" :title="item.title">
+          {{ item.title }}
+          <section class="symbol2" v-if="item.type === 'photoLive'">
+            {{ handleType(item.type).name }} {{ item.desc.source === 'origin' ? '原片' : '发布' }} |
+            {{ item.desc.sourceType === 'origin' ? '原片分类' : '发布分类' }} |
+            {{ item.desc.sourceWatermark === 'true' ? '水印' : '无印' }}
+          </section>
+          <section class="symbol2" v-else>{{ handleType(item.type).name }}</section>
         </section>
         <section class="process">{{ calcProcess(item) }}%</section>
         <section class="handle-wrapper">
-          <section class="icon-start"
-                   @click="startDownload(item.taskId)"
-                   v-if="item.status===0 && !item.finished"
-                   title="开始下载">
+          <section
+            class="icon-start"
+            @click="startDownload(item.taskId)"
+            v-if="item.status === 0 && !item.finished"
+            title="开始下载"
+          >
             <x-icon type="start"></x-icon>
           </section>
-          <section class="icon-pause"
-                   @click="pauseDownload(item.taskId)"
-                   v-else-if="item.status===1 && !item.finished"
-                   title="暂停下载">
+          <section
+            class="icon-pause"
+            @click="pauseDownload(item.taskId)"
+            v-else-if="item.status === 1 && !item.finished"
+            title="暂停下载"
+          >
             <x-icon type="pause"></x-icon>
           </section>
-          <section class="icon-pause"
-                   @click="openFold(item)"
-                   v-else
-                   title="打开目录">
+          <section class="icon-pause" @click="openFold(item)" v-else title="打开目录">
             <x-icon type="folder"></x-icon>
           </section>
-          <section class="icon-delete"
-                   @click="removeDownload(item.taskId)"
-                   title="删除任务">
+          <section class="icon-delete" @click="removeDownload(item.taskId)" title="删除任务">
             <x-icon type="close"></x-icon>
           </section>
         </section>
       </section>
     </section>
 
-    <section class="download-list"
-             v-else>
+    <section class="download-list" v-else>
       <p class="tip">
         <x-icon type="none"></x-icon>
       </p>
-
     </section>
 
     <!-- 底栏 -->
@@ -88,31 +72,19 @@
         <p class="version">{{ $version }}</p>
       </section>
       <section class="handle-wrapper">
-        <section class="icon-start"
-                 @click="addTask"
-                 title="新建任务">
+        <section class="icon-start" @click="addTask" title="新建任务">
           <x-icon type="add"></x-icon>
         </section>
-        <section class="icon-start"
-                 @click="startAllTask"
-                 v-if="!startAll || taskCount===0"
-                 title="全部开始">
+        <section class="icon-start" @click="startAllTask" v-if="!startAll || taskCount === 0" title="全部开始">
           <x-icon type="start"></x-icon>
         </section>
-        <section class="icon-start"
-                 @click="pauseAll"
-                 v-else
-                 title="全部暂停">
+        <section class="icon-start" @click="pauseAll" v-else title="全部暂停">
           <x-icon type="pause"></x-icon>
         </section>
-        <section class="icon-start"
-                 @click="deleteAll"
-                 title="全部删除">
+        <section class="icon-start" @click="deleteAll" title="全部删除">
           <x-icon type="close"></x-icon>
         </section>
-        <section class="icon-delete"
-                 @click="setup"
-                 title="设置">
+        <section class="icon-delete" @click="setup" title="设置">
           <x-icon type="setup"></x-icon>
         </section>
       </section>
@@ -136,7 +108,7 @@ export default {
     XLoading
   },
   props: {},
-  data () {
+  data() {
     return {
       scaleMin: false,
       queue: [],
@@ -146,32 +118,32 @@ export default {
       urlStr: '',
       showAdd: false,
       taskConfig: {
-        env: 'pro',  // 测试环境（dev）, 生产环境（pro）
+        env: 'pro', // 测试环境（dev）, 生产环境（pro）
         downloadList: [
           {
             downloadType: 'cloudAlbum', // 云相册
-            id: '33VEGTXM0M00', // 云相册id 
+            id: '33VEGTXM0M00', // 云相册id
             sourceWatermark: true // 是否带水印
           },
           {
             downloadType: 'photoLive', // 照片直播
             id: '3C96J23W5S00', // 照片直播id
-            source: 'publish', // 下载源 
-            sourceType: 'publish', // 下载分类 
+            source: 'publish', // 下载源
+            sourceType: 'publish', // 下载分类
             sourceWatermark: false // 是否带水印
           },
           {
             downloadType: 'photoLive', // 照片直播
             id: '3C95VHA05S00', // 照片直播id
-            source: 'publish', // 下载源 
-            sourceType: 'publish', // 下载分类 
+            source: 'publish', // 下载源
+            sourceType: 'publish', // 下载分类
             sourceWatermark: false // 是否带水印
           },
           // {
           //   暂未支持
           //   downloadType: 'asset', // 素材库
           //   id: '2838384884', // 素材id
-          // },  
+          // },
           {
             downloadType: 'file', // 文件
             name: '3HQ8975G0400.exe', // 文件名
@@ -180,11 +152,11 @@ export default {
           {
             downloadType: 'shareFold', // 文件夹
             id: '3PHNHCNW0400', // 文件夹id
-            password: 'AVX0' // 分享密码 
+            password: 'AVX0' // 分享密码
           },
           {
             downloadType: 'fold', // 文件夹
-            id: '2VGXRQ680B00', // 文件夹id 
+            id: '2VGXRQ680B00' // 文件夹id
           }
         ]
       },
@@ -192,9 +164,9 @@ export default {
     }
   },
   computed: {
-    userInfo () {
+    userInfo() {
       return this.$store.state.user.info
-    },
+    }
     // downloadTask () {
     //   return this.$estore.get('downloadTask')
     // },
@@ -203,17 +175,16 @@ export default {
     // downloadTask () {
     //   // console.log('bianhuale')
     // },
-    taskList (n, o) {
+    taskList(n, o) {
       // console.log('变化了')
+      window.localStorage.setItem('dTask', JSON.stringify(n))
     },
-    queue () {
-
-    }
+    queue() {}
   },
   methods: {
-    removeDownload (taskId) {
+    removeDownload(taskId) {
       this.pauseDownload(taskId)
-      let index = this.taskList.findIndex(item => item.taskId === taskId)
+      let index = this.taskList.findIndex((item) => item.taskId === taskId)
       console.log('找到index', index)
       this.taskList.splice(index, 1)
       console.log('剩余', this.taskList.length)
@@ -222,20 +193,19 @@ export default {
       // task.downloadList = this.taskList
       // this.$estore.set('downloadTask', task)
     },
-    cancelHandle () {
+    cancelHandle() {
       this.showAdd = false
     },
-    openFold (task) {
+    openFold(task) {
       if (ipcRenderer) {
         if (task.type === 'file') {
           ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold'))
         } else {
           ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold') + '/' + task.title)
         }
-
       }
     },
-    startHandle (str) {
+    startHandle(str) {
       // =====思路如下=====
       // 新建一个窗口
       // 将str传递给该窗口
@@ -250,26 +220,26 @@ export default {
         message: decodeURI(str)
       })
     },
-    addTask () {
+    addTask() {
       // console.log(1)
       this.showAdd = true
     },
-    setup () {
+    setup() {
       this.$router.push({
         name: 'setup'
       })
     },
     // 计算进度
-    calcProcess (task) {
+    calcProcess(task) {
       if (task) {
         let p
-        const downloadedCount = task.fileList.filter(item => item.downloaded === true).length
+        const downloadedCount = task.fileList.filter((item) => item.downloaded === true).length
         const totalCount = task.fileList.length
 
         if (totalCount === 0) {
           p = 100
         } else {
-          p = parseInt(downloadedCount / totalCount * 100)
+          p = parseInt((downloadedCount / totalCount) * 100)
         }
 
         if (p === 100) {
@@ -280,28 +250,28 @@ export default {
         return 0
       }
     },
-    getQuery (queryStr) {
+    getQuery(queryStr) {
       try {
         // console.log(1, queryStr.split('env=')[1])
         const str = 'env=' + queryStr.split('env=')[1]
         // console.log(2, str)
-        const str1 = str.split('env=')[1];
+        const str1 = str.split('env=')[1]
         // console.log(3, str1)
         const env = str1.split('&')[0]
         // console.log(4, env)
-        const downloadList = decodeURI(str.split('downloadList=')[1]);
+        const downloadList = decodeURI(str.split('downloadList=')[1])
         // console.log(5, downloadList)
         const obj = {
           env: env,
           downloadList: JSON.parse(downloadList)
         }
         // console.log('========00000', obj)
-        return obj;
+        return obj
       } catch (e) {
         return {}
       }
     },
-    getNewQueue (task) {
+    getNewQueue(task) {
       let fl
       for (let i = 0; i < task.fileList.length; i++) {
         if (!task.fileList[i].downloaded && !task.fileList[i].inQueue) {
@@ -311,24 +281,24 @@ export default {
       }
       return fl
     },
-    async startAllTask () {
+    async startAllTask() {
       this.taskCount = this.taskList.length
       this.startAll = true
 
-      for(let i =0;i<this.taskList.length;i++){
+      for (let i = 0; i < this.taskList.length; i++) {
         this.startDownload(this.taskList[i].taskId)
       }
     },
-    pauseAll () {
+    pauseAll() {
       this.startAll = false
       // this.taskList.map(item => {
       //   this.pauseDownload(item.taskId)
       // })
-      for(let i =0;i<this.taskList.length;i++){
+      for (let i = 0; i < this.taskList.length; i++) {
         this.pauseDownload(this.taskList[i].taskId)
       }
     },
-    deleteAll () {
+    deleteAll() {
       // console.log(this.taskList, this.taskList.length)
       const list = this.taskList.concat()
       console.log('list', list)
@@ -339,14 +309,14 @@ export default {
         }
       }
     },
-    down (task, fileItem) {
+    down(task, fileItem) {
       if (fileItem) {
         fileItem.inQueue = true
         // 获取当前任务队列
         // 如果队列任务小于3，则添加任务到队列，
         // 队列任务同时进行下载，单个任务下载完毕后，移除队列，添加新任务到队列中
         console.log(fileItem.savePath, fileItem.fold)
-        loadData.download(fileItem.url, fileItem.savePath, fileItem.fold).then(res => {
+        loadData.download(fileItem.url, fileItem.savePath, fileItem.fold).then((res) => {
           // console.log('下载完毕')
           fileItem.downloaded = true
           const nFileItem = this.getNewQueue(task)
@@ -359,13 +329,13 @@ export default {
       }
     },
 
-    startDownload2 (taskId) {
+    startDownload2(taskId) {
       ipcRenderer.send('startDownloadTask', {
         message: taskId
       })
     },
 
-    doDownload (obj) {
+    doDownload(obj) {
       return new Promise((resolve, reject) => {
         console.log('========5555', encodeURI(JSON.stringify(obj)))
         ipcRenderer.send('startDownloadTask', {
@@ -374,22 +344,22 @@ export default {
       })
     },
 
-    async startDownload (taskId) {
+    async startDownload(taskId) {
       console.log('------path', this.$estore.get('downloadFold'))
       // console.log('this.taskList',this.taskList)
       // 1. 获取当前下载任务
       console.log('111', taskId)
-      const currentTask = await this.taskList.find(item => item.taskId === taskId)
+      const currentTask = await this.taskList.find((item) => item.taskId === taskId)
       console.log('222', currentTask)
       currentTask.status = 1
       // this.taskList.find(item => item.taskId === taskId).status = 1
       // this.$set(currentTask, 'status', 1)
       const fileList = currentTask.fileList
-      
+
       // 2. 获取当前任务池队列
       // let taskPond = this.$estore.get('taskPond') || []
       // 3. 将下载任务插入任务池中，状态改为待下载
-      fileList.map(item => {
+      fileList.map((item) => {
         item.status = 1
         // taskPond.push(item)
       })
@@ -403,8 +373,8 @@ export default {
             console.log(fileList[i].savePath, fileList[i].fold)
             await loadData.download(fileList[i].url, fileList[i].savePath, fileList[i].fold)
             // await this.doDownload({
-            //   url: fileList[i].url, 
-            //   savePath: fileList[i].savePath, 
+            //   url: fileList[i].url,
+            //   savePath: fileList[i].savePath,
             //   fold: fileList[i].fold
             // })
             fileList[i].downloaded = true
@@ -416,9 +386,9 @@ export default {
       this.taskCount--
     },
 
-    pauseDownload (taskId) {
+    pauseDownload(taskId) {
       // 1. 获取当前下载任务
-      const currentTask = this.taskList.find(item => item.taskId === taskId)
+      const currentTask = this.taskList.find((item) => item.taskId === taskId)
       currentTask.status = 0
       // const fileList = currentTask.fileList
       // 2. 获取当前任务池队列
@@ -432,7 +402,7 @@ export default {
       // this.$estore.set('taskPond', taskPond)
       // console.log('====taskPond: ',this.$estore.get('taskPond'), fileList)
     },
-    handleType (val) {
+    handleType(val) {
       if (val === 'cloudAlbum') {
         return {
           name: '云相册',
@@ -464,50 +434,57 @@ export default {
         }
       }
     },
-    async getCurrentUser () {
+    async getCurrentUser() {
       const token = localStorage.getItem('x_token')
       const refresh_token = localStorage.getItem('x_refresh_token')
       if (token) {
-        const res = await api.getUserInfo(res => {
-          const userInfo = {
-            id: res.data.id,
-            avatar: res.data.avatar,
-            nickname: res.data.nickname ? res.data.nickname : '默认用户',
-            countryCode: res.data.account.countryCode,
-            phoneNo: res.data.account.phoneNo
+        const res = await api.getUserInfo(
+          (res) => {
+            const userInfo = {
+              id: res.data.id,
+              avatar: res.data.avatar,
+              nickname: res.data.nickname ? res.data.nickname : '默认用户',
+              countryCode: res.data.account.countryCode,
+              phoneNo: res.data.account.phoneNo
+            }
+            this.$store.commit('SET_USER_INFO', userInfo)
+          },
+          () => {
+            // 刷新token
+            if (refresh_token) {
+              api.refreshToken(
+                refresh_token,
+                (res) => {
+                  // 把新的令牌存储进去
+                  if (res && res.status === 200) {
+                    const token = `${res.data.token_type} ${res.data.access_token}`
+                    localStorage.setItem('x_token', token)
+                    localStorage.setItem('x_refresh_token', res.data.refresh_token)
+                    this.getCurrentUser()
+                  } else {
+                    this.$router.replace({
+                      path: '/login'
+                    })
+                  }
+                },
+                (err) => {
+                  // console.log('++++error', err)
+                }
+              )
+            } else {
+              this.$router.replace({
+                path: '/login'
+              })
+            }
           }
-          this.$store.commit('SET_USER_INFO', userInfo)
-        }, () => {
-          // 刷新token
-          if (refresh_token) {
-            api.refreshToken(refresh_token, res => {
-              // 把新的令牌存储进去
-              if (res && res.status === 200) {
-                const token = `${res.data.token_type} ${res.data.access_token}`
-                localStorage.setItem('x_token', token)
-                localStorage.setItem('x_refresh_token', res.data.refresh_token)
-                this.getCurrentUser()
-              } else {
-                this.$router.replace({
-                  path: '/login'
-                })
-              }
-            }, err => {
-              // console.log('++++error', err)
-            })
-          } else {
-            this.$router.replace({
-              path: '/login'
-            })
-          }
-        })
+        )
       } else {
         this.$router.replace({
           path: '/login'
         })
       }
     },
-    logout () {
+    logout() {
       if (window.confirm('是否退出登录？')) {
         localStorage.clear()
         this.$router.replace({
@@ -515,18 +492,22 @@ export default {
         })
       }
     },
-    listenScroll () {
+    listenScroll() {
       // 根据下拉更改头部高度
-      window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-          this.scaleMin = true
-        } else {
-          this.scaleMin = false
-        }
-      }, false)
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (window.scrollY > 50) {
+            this.scaleMin = true
+          } else {
+            this.scaleMin = false
+          }
+        },
+        false
+      )
     },
     // 监听下载器动作
-    listenIPC () {
+    listenIPC() {
       ipcRenderer.on('initConfig', (event, arg) => {
         console.log('监听到了配置变化：', decodeURI(arg))
         // 若用户未登录，则不跳转
@@ -558,7 +539,7 @@ export default {
         this.taskList.push(arg)
       })
     },
-    async init (taskConfig) {
+    async init(taskConfig) {
       // console.log('====3333',taskConfig)
       // this.taskList = []
       this.loading = true
@@ -615,7 +596,7 @@ export default {
       }
     }
   },
-  async mounted () {
+  async mounted() {
     // =====思路如下=====
     // 新建一个窗口
     // 将str传递给该窗口
@@ -630,7 +611,7 @@ export default {
     // 获取配置文件
     // this.taskConfig = this.$estore.get('downloadTask')·
     // console.log('=====',this.taskConfig)
-    // if(this.taskConfig){  
+    // if(this.taskConfig){
     //   this.init(this.taskConfig)
     // }
     // this.init(this.taskConfig)

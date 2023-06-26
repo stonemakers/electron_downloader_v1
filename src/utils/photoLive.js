@@ -5,10 +5,20 @@ import { ipcRenderer } from 'electron'
 // 通过照片直播，添加下载队列
 export default async (config) => {
   return new Promise(async (resolve, reject) => {
-    try{
+    try {
       // 解析下载配置，获取下载资源
       const res = (await api.getAlbumById(config.id)).data
-      const title = res.name
+      console.log('&&&&&&&&&dTask:', window.localStorage.getItem('dTask'))
+      let dTask = JSON.parse(window.localStorage.getItem('dTask'))
+      console.log('1111', dTask)
+      let title = res.name
+      if (dTask) {
+        dTask.map(item => {
+          if (item.title === title) {
+            title += '_1'
+          }
+        })
+      }
       const info = JSON.parse(res.templates)
       const waterStr = info ? info.waterStr : ''
       console.log('info', info)
@@ -19,7 +29,7 @@ export default async (config) => {
       console.log('&&&&&&&', photoList)
       // 2. 获取分类列表
       const categoryList = await getCategoryList(config.id, config.sourceType)
-      console.log('categoryList',categoryList)
+      console.log('categoryList', categoryList)
       // 3. 合成下载列表
       const fileList = combineDownloadList(config, title, photoList, categoryList, watermark)
 
@@ -30,7 +40,7 @@ export default async (config) => {
         type: config.downloadType,
         taskId: Math.random().toString(16),
         liveId: config.id,
-        title: title,
+        title: `${title}`,
         status: 0,
         fileList: fileList,
         finished: false,
@@ -40,7 +50,7 @@ export default async (config) => {
           sourceWatermark: config.sourceWatermark
         }
       })
-    }catch(e){
+    } catch (e) {
       reject(e)
     }
 
@@ -117,37 +127,37 @@ const getCategoryList = async (id, arg) => {
 // 合成下载列表
 const combineDownloadList = (config, title, photoList, categoryList, watermark) => {
   let fileList = []
-  if(photoList.length>0){
-  photoList.map(item => {
-    console.log('99999', item, config)
-    const categoryId = config.sourceType === 'publish' ? item.categoryId : item.originalCategoryId?item.originalCategoryId:item.categoryId
-    const categoryName = getCategoryNameById(categoryId, categoryList) || '默认分类'
-    console.log('categoryName', categoryName)
-    fileList.push({ 
-      id: item.id,
-      url: config.sourceWatermark==='true'? item.url + '&' + watermark : item.url,
-      savePath: `${fmtStr(title)}/${fmtStr(categoryName)}/${item.name}`,
-      fold: `${fmtStr(title)}/${fmtStr(categoryName)}`,
-      downloaded: false, 
+  if (photoList.length > 0) {
+    photoList.map(item => {
+      console.log('99999', item, config)
+      const categoryId = config.sourceType === 'publish' ? item.categoryId : item.originalCategoryId ? item.originalCategoryId : item.categoryId
+      const categoryName = getCategoryNameById(categoryId, categoryList) || '默认分类'
+      console.log('categoryName', categoryName)
+      fileList.push({
+        id: item.id,
+        url: config.sourceWatermark === 'true' ? item.url + '&' + watermark : item.url,
+        savePath: `${fmtStr(title)}/${fmtStr(categoryName)}/${item.name}`,
+        fold: `${fmtStr(title)}/${fmtStr(categoryName)}`,
+        downloaded: false,
+        status: 0 // 0:暂停下载 1: 待下载
+      })
+    })
+  } else {
+    fileList.push({
+      id: Math.random().toString(16),
+      url: '',
+      savePath: `${fmtStr(title)}`,
+      fold: `${fmtStr(title)}`,
+      downloaded: false,
       status: 0 // 0:暂停下载 1: 待下载
     })
-  })
-}else{
-  fileList.push({
-    id: Math.random().toString(16),
-    url: '',
-    savePath: `${fmtStr(title)}`,
-    fold: `${fmtStr(title)}`,
-    downloaded: false,
-    status: 0 // 0:暂停下载 1: 待下载
-  })
-}
+  }
   return fileList
 }
 
 // 获取分类名称
 const getCategoryNameById = (id, categoryList) => {
-  console.log('******',id, categoryList)
+  console.log('******', id, categoryList)
   if (id) {
     for (let i = 0; i < categoryList.length; i++) {
       if (categoryList[i].id === id) {
@@ -160,8 +170,8 @@ const getCategoryNameById = (id, categoryList) => {
 }
 
 // 格式化路径
-function fmtStr (text) {
+function fmtStr(text) {
   if (text) {
-    return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
+    return text.replace(/\//g, '').replace(/\\/g, '').replace(/\n/g, ' ').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
   }
 }

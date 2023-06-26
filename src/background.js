@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow, ipcMain, dialog, shell, Notification, Menu } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain, screen, dialog, shell, Notification, Menu } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 const path = require('path');
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -46,10 +46,49 @@ let win = ''
 let nwin = ''
 let taskStr = ''
 let downloadWin = ''
+let bar = ''
 
 // Menu.setApplicationMenu(null)
 
-async function createWindow () {
+async function createBar() {
+  var mainScreen = screen.getPrimaryDisplay();
+  var dimensions = mainScreen.size;
+  const w = dimensions.width
+  const h = dimensions.height
+
+
+
+  bar = new BrowserWindow({
+    width: 100,
+    height: 40,
+    frame: false,
+    x: w - 150,
+    y: h - 100,
+    alwaysOnTop: true,
+    resizable: false,
+    // transparent: true,
+    opacity: 0.9,
+    // backgroundColor: rgba(255,255,255,.9),
+    webPreferences: {
+      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+      // nodeIntegration: true,
+      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
+    }
+  })
+
+  // win.webContents.openDevTools()
+
+  if (process.env.WEBPACK_DEV_SERVER_URL) {
+    await bar.loadURL(process.env.WEBPACK_DEV_SERVER_URL + '#/bar')
+    // if (!process.env.IS_TEST) win.webContents.openDevTools()
+    // win.webContents.openDevTools()
+  } else {
+    createProtocol('app')
+    bar.loadURL('app://./index.html#bar')
+  }
+}
+
+async function createWindow() {
   win = new BrowserWindow({
     width: 380,
     height: 600,
@@ -93,7 +132,7 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-function handleUrl (urlStr) {
+function handleUrl(urlStr) {
   // myapp://?name=1&pwd=2
   console.log(urlStr)
   // win.webContents.send('console', '进入handleUrl')
@@ -105,28 +144,28 @@ function handleUrl (urlStr) {
 
 
   let timmer = setInterval(() => {
-    try{
-      if(win && win.webContents){
+    try {
+      if (win && win.webContents) {
         win.focus()
         setTimeout(() => {
-          if(win && win.webContents){
+          if (win && win.webContents) {
             // win.webContents.send('console', '有win')
             win.webContents.send('initConfig', curl)
             // win.webContents.send('console', '发送了initConfig')
-          }else{
+          } else {
             // win.webContents.send('console', '没有win')
-            if(timmer){
+            if (timmer) {
               clearInterval(timmer)
-            }   
+            }
           }
         }, 1000);
-        if(timmer){
+        if (timmer) {
           clearInterval(timmer)
         }
         // win.webContents.send('console', '22222')
       }
-    }catch(e){
-      if(timmer){
+    } catch (e) {
+      if (timmer) {
         clearInterval(timmer)
       }
     }
@@ -142,6 +181,7 @@ app.on('ready', async () => {
     }
   }
   createWindow()
+  // createBar()
   // 加载监听事件
   ipcMain.on('startDownload', (event, args) => {
     console.log('=======startDownload')
@@ -162,7 +202,7 @@ app.on('ready', async () => {
     }
   })
 
-  
+
 
   // win.on('close', (e, d) => {
   //   e.preventDefault(); //先阻止一下默认行为，不然直接关了，提示框只会闪一下
@@ -244,10 +284,10 @@ app.on('ready', async () => {
 
   // 窗口加载成功
   ipcMain.on('window-load-success', (event, arg) => {
-    if(nwin){
+    if (nwin) {
       nwin.webContents.send('loadFinished', taskStr)
     }
-  }) 
+  })
 
   // 窗口加载状态通知
   ipcMain.on('loadingTask', (event, arg) => {
@@ -262,7 +302,7 @@ app.on('ready', async () => {
 
   ipcMain.on('destroy', (event, arg) => {
     // win.webContents.send('pushTask', arg)
-    if(nwin){
+    if (nwin) {
       nwin.destroy()
       nwin = null
     }
@@ -347,7 +387,7 @@ app.on('ready', async () => {
     }
   });
 
-  function handleArgv (argv) {
+  function handleArgv(argv) {
     const prefix = `${PROTOCOL}:`;
     const offset = app.isPackaged ? 1 : 2;
     const url = argv.find((arg, i) => i >= offset && arg.startsWith(prefix));
@@ -362,23 +402,23 @@ app.on('ready', async () => {
 //   handleUrl(urlStr);
 // });
 
-app.on ('will-finish-launching' , () => {
+app.on('will-finish-launching', () => {
   console.log('*****%%%%$$$$')
   // handleUrl('yaopai://download?liveId=1891XW9W2R00&type=publish&category=publish&watermark=true');
   // dialog.showMessageBox(win, {message: 'hahahahah'})
   // win.webContents.send('demo', '哈哈哈哈哈哈')
   // handleUrl(urlStr);
-  try{
-  app.on('open-url', (event, urlStr) => {
-    // win.webContents.send('demo', urlStr)
-    console.log('监听到open-url1')
-    event.preventDefault()
-    handleUrl(urlStr);
-    // dialog.showMessageBox(win, {message: urlStr})
-  });
-}catch(e){
-  console.log(e)
-}
+  try {
+    app.on('open-url', (event, urlStr) => {
+      // win.webContents.send('demo', urlStr)
+      console.log('监听到open-url1')
+      event.preventDefault()
+      handleUrl(urlStr);
+      // dialog.showMessageBox(win, {message: urlStr})
+    });
+  } catch (e) {
+    console.log(e)
+  }
 })
 
 

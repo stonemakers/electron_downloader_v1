@@ -4,6 +4,7 @@ import Index from '../views/Index.vue'
 import Login from '../views/Login.vue'
 import Setup from '../views/Setup.vue'
 import Task from '../views/Task.vue'
+import Bar from '../views/Bar.vue'
 import Download from '../views/Download.vue'
 import store from '@/store'
 import api from '@/Api'
@@ -30,6 +31,11 @@ const routes = [
     path: '/task',
     name: 'task',
     component: Task
+  },
+  {
+    path: '/bar',
+    name: 'bar',
+    component: Bar
   },
   {
     path: '/download',

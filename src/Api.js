@@ -217,6 +217,36 @@ export default {
     })
   },
 
+  // 获取版本号
+  getVersion: () => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/downloaderVersion',
+        method: 'get'
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+  // 修改版本号
+  setVersion: (v) => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN,
+        method: 'put',
+        data: {
+          path: 'downloaderVersion',
+          content: v
+        }
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
   // 获取发布图分类列表
   getPublishCategory: liveId => {
     getEnv()

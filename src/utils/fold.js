@@ -18,20 +18,29 @@ export default async config => {
         offset: 0
       })
       title = res.data.name
-     
+
       await recursionFold(config.id, title, path)
 
-      if(fileList.length===0){
+      if (fileList.length === 0) {
         fileList.push({
           id: Math.random().toString(16),
-          url: '', 
+          url: '',
           savePath: `${fmtStr(title)}`,
           fold: `${fmtStr(title)}`,
           downloaded: false,
           status: 0 // 0:暂停下载 1: 待下载1
         })
       }
-      
+
+      const dTask = JSON.parse(window.localStorage.getItem('dTask'))
+      if (dTask) {
+        dTask.map(item => {
+          if (item.title === title) {
+            title += '_1'
+          }
+        })
+      }
+
       resolve({
         type: config.downloadType,
         taskId: Math.random().toString(16),
@@ -40,7 +49,7 @@ export default async config => {
         fileList: fileList,
         finished: false
       })
-      
+
     } catch (e) {
       ipcRenderer.send('alert', '无文件夹访问权限，请加入协作者重试')
       // alert('无文件夹访问权限，请加入协作者重试')
@@ -50,7 +59,7 @@ export default async config => {
 }
 
 // 递归文件夹
-async function recursionFold (id, name, p) {
+async function recursionFold(id, name, p) {
   // console.log('===p', p)
   // console.log('===name', name)
   let nPath = p + '/' + name
@@ -75,7 +84,7 @@ async function recursionFold (id, name, p) {
       console.log('=====插入一个false')
       fileList.push({
         url: l[i].url,
-        savePath: `${nPath}/${l[i].name}`, 
+        savePath: `${nPath}/${l[i].name}`,
         fold: `${nPath}`,
         downloaded: false,
         status: 0 // 0:暂停下载 1: 待下载
@@ -89,10 +98,10 @@ async function recursionFold (id, name, p) {
 }
 
 // 格式化路径
-function fmtStr (text) {
-  if(text){
-    return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
-  }else{
+function fmtStr(text) {
+  if (text) {
+    return text.replace(/\//g, '').replace(/\\/g, '').replace(/\n/g, ' ').replace(/\?/g, '').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
+  } else {
     return ''
   }
 }
