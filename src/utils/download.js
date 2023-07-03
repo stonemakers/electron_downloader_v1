@@ -1,7 +1,8 @@
-import fs from 'fs'
-import request from 'request'
-import Store from 'electron-store'
-const store = new Store()
+import fs from 'fs';
+import request from 'request';
+import path from 'path';
+import Store from 'electron-store';
+const store = new Store();
 
 export default {
   getHeaders(url) {
@@ -12,73 +13,59 @@ export default {
           method: 'GET',
           forever: true,
           headers: {
-            // 请求头
             'Cache-Control': 'no-cache',
             Range: 'bytes=0-1'
           }
         },
         (err, res) => {
           if (err) {
-            reject(err)
+            reject(err);
           } else {
-            resolve(res.headers)
+            resolve(res.headers);
           }
         }
-      )
-    })
+      );
+    });
   },
 
-  async download(url, path, foldPath) {
+  async download(url, filePath, foldPath) {
     return new Promise(async (resolve, reject) => {
-      let req
-      let out
-      let totalSize = 0
-      let receivedBytes = 0
-      // console.log('url:=====', url)
-      if (url) {
-        const headers = await this.getHeaders(url)
-        // console.log("++++++headers", headers)
-        if (headers['content-range']) {
-          totalSize = Number(headers['content-range'].split('/')[1]) // 文件总大小
-        } else {
-          totalSize = 0
-        }
+      let req;
+      let out;
+      let totalSize = 0;
+      let receivedBytes = 0;
 
-        // console.log('--- download.js - > totalsize', totalSize)
+      if (url) {
+        const headers = await this.getHeaders(url);
+
+        if (headers['content-range']) {
+          totalSize = Number(headers['content-range'].split('/')[1]);
+        } else {
+          totalSize = 0;
+        }
 
         if (headers['accept-ranges'] !== 'bytes') {
-          // 判断资源是否支持断点下载
-          console.log('--- download.js - > 资源不支持断点下载')
-          // return
-        }
-        // const filePath = path.join(store.get('downloadsFolder') + file.savePath + file.name)
-        const filePath = store.get('downloadFold') + '/' + path
-        console.log('--- filePath: ', filePath)
-
-        function fmtStr(text) {
-          return text.replace(/\//g, '').replace(/\\/g, '').replace(/\?/g, '').replace(/\n/g, ' ').replace(/\？/g, '').replace(/\*/g, '').replace(/\'/g, '').replace(/\"/g, '').replace(/\>/g, '').replace(/\</g, '').replace(/\|/g, '').replace(/\:/g, '').replace(/\｜/g, '').replace(/\：/g, '')
+          console.log('Resource does not support resumable download');
+          // Implement your handling here
         }
 
-        let stat
-        if (fs.existsSync(filePath)) {
-          // console.log('--- download.js - > 检测存在该文件')
-          stat = fs.statSync(filePath) // 获取文件资源
-          receivedBytes = stat.size
-          // console.log(`--- download.js - > receivedBytes：${receivedBytes}`)
+        const fullPath = path.join(store.get('downloadFold'), filePath);
+
+        let stat;
+        if (fs.existsSync(fullPath)) {
+          stat = fs.statSync(fullPath);
+          receivedBytes = stat.size;
+
           if (receivedBytes === totalSize) {
-            // console.log('--- download.js - > 文件已下载完毕')
-            resolve()
+            resolve();
           }
           if (receivedBytes > totalSize) {
-            // console.log('--- download.js - > 本地大于网络资源')
-            resolve()
+            resolve();
           }
         } else {
-          // 没有检测到该文件
-          console.log('chuangjianwen减价', store.get('downloadFold') + '/' + foldPath)
-          fs.mkdirSync(store.get('downloadFold') + '/' + foldPath, { recursive: true }, err => {
-            console.log('--- download.js - > 创建文件夹错误', err)
-          })
+          fs.mkdirSync(path.join(store.get('downloadFold'), foldPath), { recursive: true }, err => {
+            console.log('Error when creating directory', err);
+          });
         }
 
         req = request({
@@ -86,37 +73,44 @@ export default {
           url: url,
           forever: true,
           headers: {
-            // 请求头
             'Cache-Control': 'no-cache',
             Range: `bytes=${receivedBytes}-${totalSize - 1}`
           }
-        })
+        });
 
-        out = fs.createWriteStream(filePath, {
+        out = fs.createWriteStream(fullPath, {
           flags: 'a'
-        })
+        });
 
-        req
-          .on('data', chunk => {
-            if (out) {
-              out.write(chunk, async () => {
-                receivedBytes += chunk.length
-                // console.log('--- download.js - > receivedBytes', receivedBytes)
-              })
-            }
-          })
-          .on('end', () => {
-            // console.log('=====end')
-            out.end()
-            resolve()
-          })
+        req.pipe(out);
+
+        req.on('data', function (chunk) {
+          receivedBytes += chunk.length;
+        });
+
+        req.on('end', function () {
+          out.end();
+        });
+
+        out.on('finish', function () {
+          resolve();
+        });
+
+        req.on('error', function (err) {
+          out.close();
+          reject(err);
+        });
+
+        out.on('error', function (err) {
+          out.close();
+          reject(err);
+        });
       } else {
-        fs.mkdirSync(store.get('downloadFold') + '/' + foldPath, { recursive: true }, err => {
-          console.log('--- download.js - > 创建文件夹错误', err)
-        })
-        resolve()
+        fs.mkdirSync(path.join(store.get('downloadFold'), foldPath), { recursive: true }, err => {
+          console.log('Error when creating directory', err);
+        });
+        resolve();
       }
-    })
+    });
   }
-
 }
