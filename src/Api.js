@@ -12,14 +12,14 @@ let DOMAIN
 let store = new Store()
 let env
 
-function getEnv(){
-  env = store.get('env') || 'pro'
-  if(env === 'dev'){
+function getEnv() {
+  env = 'pro'
+  if (env === 'dev') {
     DOMAIN = 'https://api-sta.devops.back.aiyaopai.com'
-  }else{
+  } else {
     DOMAIN = 'https://saas.api.lightio.cc'
   }
-} 
+}
 
 export default {
   // 获取短信验证码
@@ -41,8 +41,8 @@ export default {
   },
 
   // 获取照片列表
-  
-  
+
+
   // 登录
   login: (req, suc, err) => {
     getEnv()
@@ -82,7 +82,7 @@ export default {
     getEnv()
     return new Promise((resolve, reject) => {
       request({
-        url: DOMAIN + '/storagesharing/view/state?id=' + id+'&password='+ps,
+        url: DOMAIN + '/storagesharing/view/state?id=' + id + '&password=' + ps,
         method: 'get'
       })
         .then(res => resolve(res))
@@ -95,7 +95,7 @@ export default {
     getEnv()
     return new Promise((resolve, reject) => {
       request({
-        url: DOMAIN + '/storagesharing/view/expand?id=' + id+'&password='+ps,
+        url: DOMAIN + '/storagesharing/view/expand?id=' + id + '&password=' + ps,
         method: 'get'
       })
         .then(res => resolve(res))
@@ -135,7 +135,7 @@ export default {
   // 刷新登录token
   refreshToken: (token, suc, err) => {
     getEnv()
-    request 
+    request
       .post(
         DOMAIN + '/oauth/connect/token',
         qs.stringify({
@@ -223,6 +223,72 @@ export default {
     return new Promise((resolve, reject) => {
       request({
         url: DOMAIN + '/downloaderVersion',
+        method: 'get'
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+  // 获取原片分类名称
+  getOriginCategoryName: (id) => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/originalpicturecategory/' + id,
+        method: 'get'
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+  getPublicfile: params => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/publicfile/list',
+        method: 'get',
+        params
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+  // 获取摄影师名称
+  getCreateUserName: (id) => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/user/' + id,
+        method: 'get'
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+  getWorkers: id => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/livealbum/worker/list?liveAlbumId=' + id,
+        method: 'get'
+      })
+        .then(res => resolve(res))
+        .catch(err => reject(err))
+    })
+  },
+
+
+
+  // 获取发布照片分类名称
+  getPublishCategoryName: (id) => {
+    getEnv()
+    return new Promise((resolve, reject) => {
+      request({
+        url: DOMAIN + '/livepicturecategory/' + id,
         method: 'get'
       })
         .then(res => resolve(res))

@@ -25,9 +25,8 @@
         <section class="name" v-if="item" :title="item.title">
           {{ item.title }}
           <section class="symbol2" v-if="item.type === 'photoLive'">
-            {{ handleType(item.type).name }} {{ item.desc.source === 'origin' ? '原片' : '发布' }} |
-            {{ item.desc.sourceType === 'origin' ? '原片分类' : '发布分类' }} |
-            {{ item.desc.sourceWatermark === 'true' ? '水印' : '无印' }}
+            [{{ item.desc.sourceName }}] {{ item.desc.source === 'origin' ? '原片下载' : '发布照片下载' }} |
+            {{ getTName2(item.desc.sourceType) }} | {{ item.desc.sourceWatermark ? '水印' : '无印' }}
           </section>
           <section class="symbol2" v-else>{{ handleType(item.type).name }}</section>
         </section>
@@ -175,6 +174,9 @@ export default {
     // downloadTask () {
     //   // console.log('bianhuale')
     // },
+    userInfo() {
+      this.checkVersion()
+    },
     taskList(n, o) {
       // console.log('变化了')
       window.localStorage.setItem('dTask', JSON.stringify(n))
@@ -182,6 +184,31 @@ export default {
     queue() {}
   },
   methods: {
+    getTName2(type) {
+      if (type === 'publish') {
+        return '按分类'
+      }
+      if (type === 'origin') {
+        return '按标签'
+      }
+      if (type === 'photographer') {
+        return '按摄影师'
+      }
+      if (type === 'retoucher') {
+        return '按修图师'
+      }
+    },
+    async checkVersion() {
+      const v = (await api.getVersion()).data
+
+      const v_now = this.$version
+      console.log('*********v2: ', v, v_now)
+      if (v !== v_now) {
+        if (window.confirm(`发现新版本${v},当前版本${v_now}，是否下载最新版本？`)) {
+          ipcRenderer.send('update', v)
+        }
+      }
+    },
     removeDownload(taskId) {
       this.pauseDownload(taskId)
       let index = this.taskList.findIndex((item) => item.taskId === taskId)
@@ -433,6 +460,12 @@ export default {
           icon: 'a'
         }
       }
+      if (val === 'publicFile') {
+        return {
+          name: '素材库',
+          icon: 'f'
+        }
+      }
     },
     async getCurrentUser() {
       const token = localStorage.getItem('x_token')
@@ -485,7 +518,8 @@ export default {
       }
     },
     logout() {
-      if (window.confirm('是否退出登录？')) {
+      if (window.confirm('清除缓存并退出登录？')) {
+        ipcRenderer.send('clearData')
         localStorage.clear()
         this.$router.replace({
           path: '/login'
@@ -536,6 +570,7 @@ export default {
       })
 
       ipcRenderer.on('pushTask', (event, arg) => {
+        console.log('---task', arg)
         this.taskList.push(arg)
       })
     },
@@ -546,7 +581,7 @@ export default {
       try {
         if (taskConfig) {
           // 解析任务数据
-          this.$estore.set('env', taskConfig.env)
+          // this.$estore.set('env', taskConfig.env || 'pro')
           // 构建下载队列
           const list = taskConfig.downloadList
           console.log('&&&&当前任务队列数量', list.length)
@@ -616,6 +651,8 @@ export default {
     // }
     // this.init(this.taskConfig)
     // console.log('process.versions',process.versions)
+    // 获取版本号
+    // await api.setVersion('3.6.5')
   }
 }
 </script>

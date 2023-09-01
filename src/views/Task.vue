@@ -3,6 +3,7 @@
 </template>
 <script>
 import downloadPhotoLive from '@/utils/photoLive.js'
+import downloadPublicFile from '@/utils/publicFile.js'
 import downloadCloudAlbum from '@/utils/cloudAlbum.js'
 import downloadFile from '@/utils/file.js'
 import downloadShareFold from '@/utils/shareFold.js'
@@ -36,7 +37,7 @@ export default {
       try {
         if (taskConfig) {
           // 解析任务数据
-          this.$estore.set('env', taskConfig.env)
+          // this.$estore.set('env', taskConfig.env || 'pro')
           // 构建下载队列
           const list = taskConfig.downloadList
           console.log('&&&&当前任务队列数量', list.length, list)
@@ -86,13 +87,22 @@ export default {
               // ipcRenderer.send('loadingTask', false)
               ipcRenderer.send('pushTask', taskItem)
             }
+            if (list[j].downloadType === 'publicFile') {
+              // 是素材视频库下载
+              // console.log('是素材视频库下载#############', list[j])
+              const taskItem = await downloadPublicFile(list[j])
+              console.log('是素材视频库下载', taskItem)
+              // this.taskList.push(taskItem) /////////////////////
+              // ipcRenderer.send('loadingTask', false)
+              ipcRenderer.send('pushTask', taskItem)
+            }
           }
           // this.loading = false /////////////////////
           ipcRenderer.send('loadingTask', false)
           // ipcRenderer.send('destroy')
         }
       } catch (e) {
-        console.log('%%%%%% %%')
+        console.log('%%%%%% %%', e)
         // this.loading = false /////////////////////
         ipcRenderer.send('loadingTask', false)
         // ipcRenderer.send('destroy')

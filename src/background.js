@@ -1,8 +1,11 @@
 'use strict'
 
-import { app, protocol, BrowserWindow, ipcMain, screen, dialog, shell, Notification, Menu } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain, screen, dialog, shell, Notification, Menu, session } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 const path = require('path');
+const { exec } = require('child_process');
+const axios = require('axios');
+const fs = require('fs');
 const isDevelopment = process.env.NODE_ENV !== 'production'
 import Store from 'electron-store'
 
@@ -21,10 +24,14 @@ const appMenu = [
 const menu = Menu.buildFromTemplate(appMenu);
 Menu.setApplicationMenu(menu);
 
-
 let curl = ''
 
-const store = new Store({
+
+console.log('文件存储位置：', app.getPath('userData'))
+
+let store = ''
+
+store = new Store({
   name: 'config', // 文件名称,默认 config
   fileExtension: 'json', // 文件后缀,默认json
   cwd: app.getPath('userData'), // 文件位置,尽量不要动
@@ -32,6 +39,7 @@ const store = new Store({
   clearInvalidConfig: true // 发生 SyntaxError  则清空配置,
 })
 
+console.log('download目录：', store.get('downloadFold'))
 if (!store.get('downloadFold')) {
   store.set('downloadFold', app.getPath('downloads'))
 }
@@ -48,51 +56,11 @@ let taskStr = ''
 let downloadWin = ''
 let bar = ''
 
-// Menu.setApplicationMenu(null)
-
-async function createBar() {
-  var mainScreen = screen.getPrimaryDisplay();
-  var dimensions = mainScreen.size;
-  const w = dimensions.width
-  const h = dimensions.height
-
-
-
-  bar = new BrowserWindow({
-    width: 100,
-    height: 40,
-    frame: false,
-    x: w - 150,
-    y: h - 100,
-    alwaysOnTop: true,
-    resizable: false,
-    // transparent: true,
-    opacity: 0.9,
-    // backgroundColor: rgba(255,255,255,.9),
-    webPreferences: {
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      // nodeIntegration: true,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
-    }
-  })
-
-  // win.webContents.openDevTools()
-
-  if (process.env.WEBPACK_DEV_SERVER_URL) {
-    await bar.loadURL(process.env.WEBPACK_DEV_SERVER_URL + '#/bar')
-    // if (!process.env.IS_TEST) win.webContents.openDevTools()
-    // win.webContents.openDevTools()
-  } else {
-    createProtocol('app')
-    bar.loadURL('app://./index.html#bar')
-  }
-}
-
 async function createWindow() {
   win = new BrowserWindow({
     width: 380,
     height: 600,
-    resizable: false,
+    resizable: true,
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
       // nodeIntegration: true,
@@ -104,28 +72,37 @@ async function createWindow() {
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
-    if (!process.env.IS_TEST) win.webContents.openDevTools()
+    // if (!process.env.IS_TEST) win.webContents.openDevTools()
     // win.webContents.openDevTools()
   } else {
     createProtocol('app')
     win.loadURL('app://./index.html')
   }
+
+  win.on('close', () => {
+    win = null
+  })
 }
 
+app.commandLine.appendSwitch("--disable-http-cache");
+
 app.on('window-all-closed', () => {
+  console.log('window-all-closed')
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// win.on("close", (event) => {
-//   event.preventDefault();//阻止默认关闭事件
-//   win.hide(); //隐藏窗口
-// });
+app.on('before-quit', () => {
+  const allWindows = BrowserWindow.getAllWindows();
 
-// win.on("closed", () => {
-//   win= null;//移除相应窗口的引用对象，避免再次使用它.
-// });
+  allWindows.forEach(win => {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  });
+});
+
 
 
 app.on('activate', () => {
@@ -133,27 +110,15 @@ app.on('activate', () => {
 })
 
 function handleUrl(urlStr) {
-  // myapp://?name=1&pwd=2
-  console.log(urlStr)
-  // win.webContents.send('console', '进入handleUrl')
-  // const urlObj = new URL(urlStr);
-  // const { searchParams } = urlObj;
-  // console.log(urlObj.search.replace('?','')); // -> ?name=1&pwd=2
-  // ================================================
   curl = urlStr
-
-
   let timmer = setInterval(() => {
     try {
       if (win && win.webContents) {
         win.focus()
         setTimeout(() => {
           if (win && win.webContents) {
-            // win.webContents.send('console', '有win')
             win.webContents.send('initConfig', curl)
-            // win.webContents.send('console', '发送了initConfig')
           } else {
-            // win.webContents.send('console', '没有win')
             if (timmer) {
               clearInterval(timmer)
             }
@@ -162,7 +127,6 @@ function handleUrl(urlStr) {
         if (timmer) {
           clearInterval(timmer)
         }
-        // win.webContents.send('console', '22222')
       }
     } catch (e) {
       if (timmer) {
@@ -193,39 +157,15 @@ app.on('ready', async () => {
 
   ipcMain.on('openDownloadFold', (event, args) => {
     try {
-      console.log(args)
-      shell.openPath(args)
+      let escapedPath = args.replace(/\n/g, '\\n');
+      // console.log(escapedPath)
+      shell.openPath(escapedPath);
     } catch (e) {
       dialog.showMessageBox({
         message: '资源不存在'
       })
     }
   })
-
-
-
-  // win.on('close', (e, d) => {
-  //   e.preventDefault(); //先阻止一下默认行为，不然直接关了，提示框只会闪一下
-  //   dialog.showMessageBox({
-  //     type: 'info',
-  //     title: '提示',
-  //     message: '下载任务将清空，确认退出？',
-  //     buttons: ['确认', '取消'],   //选择按钮，点击确认则下面的idx为0，取消为1
-  //     cancelId: 1, //这个的值是如果直接把提示框×掉返回的值，这里设置成和“取消”按钮一样的值，下面的idx也会是1
-  //   }).then(idx => {
-  //     //注意上面↑是用的then，网上好多是直接把方法做为showMessageBox的第二个参数，我的测试下不成功
-  //     console.log(idx)
-  //     if (idx.response == 1) {
-  //       console.log('index==1，取消关闭')
-  //       e.preventDefault();
-  //     } else {
-  //       console.log('index==0，关闭')
-  //       win = null
-  //       app.exit();
-  //     }
-  //   })
-  // })
-
 
   let dTask = ''
   // 创建下载任务进程
@@ -235,7 +175,7 @@ app.on('ready', async () => {
       width: 800,
       height: 600,
       show: false,
-      // resizable: false,
+      resizable: false,
       webPreferences: {
         nodeIntegration: true,
         // nodeIntegration: true,
@@ -247,6 +187,9 @@ app.on('ready', async () => {
     downloadWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL + '#/download')
     // downloadWin.webContents.send('downloadStart', args.message)
 
+    downloadWin.on('close', () => {
+      downloadWin = null
+    })
 
     // 下载加载成功
     ipcMain.on('download-process-ready', (event, arg) => {
@@ -266,6 +209,10 @@ app.on('ready', async () => {
         // nodeIntegration: true,
         contextIsolation: false
       }
+    })
+
+    nwin.on('close', () => {
+      nwin = null
     })
 
     taskStr = args.message
@@ -289,6 +236,21 @@ app.on('ready', async () => {
     }
   })
 
+
+  // 窗口加载成功
+  ipcMain.on('clearData', (event, arg) => {
+    if (win) {
+      console.log('clear1')
+      const ses = win.webContents.session
+      ses.clearStorageData({
+        storages: ['appcache', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+      })
+    }
+    console.log('clear2')
+    store.clear()
+  })
+
+
   // 窗口加载状态通知
   ipcMain.on('loadingTask', (event, arg) => {
     win.webContents.send('loadingTask', arg)
@@ -296,8 +258,16 @@ app.on('ready', async () => {
 
   // 窗口加载状态通知
   ipcMain.on('pushTask', (event, arg) => {
+    console.log('====jianting pushTask')
     win.webContents.send('pushTask', arg)
     // nwin.destroy()
+
+    setTimeout(() => {
+      if (nwin) {
+        nwin.destroy()
+        nwin = null
+      }
+    }, 2000);
   })
 
   ipcMain.on('destroy', (event, arg) => {
@@ -310,6 +280,11 @@ app.on('ready', async () => {
 
   ipcMain.on('alert', (event, arg) => {
     win.webContents.send('alert', arg)
+  })
+
+  ipcMain.on('update', (event, v) => {
+    // 唤起系统默认的浏览器打开指定的网址
+    shell.openExternal(`https://assets.aiyaopai.com/pan/LightIO-${v}.${process.platform !== 'darwin' ? 'exe' : 'dmg'}`);
   })
 
   /**
@@ -411,7 +386,7 @@ app.on('will-finish-launching', () => {
   try {
     app.on('open-url', (event, urlStr) => {
       // win.webContents.send('demo', urlStr)
-      console.log('监听到open-url1')
+      console.log('监听到open-url1', urlStr)
       event.preventDefault()
       handleUrl(urlStr);
       // dialog.showMessageBox(win, {message: urlStr})
