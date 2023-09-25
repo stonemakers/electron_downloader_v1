@@ -28,7 +28,7 @@ export default {
     });
   },
 
-  async download(url, filePath, foldPath) {
+  async download(url, filePath, foldPath, retries = 3) {
     return new Promise(async (resolve, reject) => {
       let req;
       let out;
@@ -90,6 +90,16 @@ export default {
 
         req.on('end', function () {
           out.end();
+          if (receivedBytes === totalSize) { // 检查文件是否完整
+            resolve();
+          } else if (retries > 0) { // 如果不完整且还有剩余重试次数
+            console.log(`Retrying download... Remaining retries: ${retries}`);
+            this.download(url, filePath, foldPath, retries - 1)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            reject(new Error('Failed after multiple retries'));
+          }
         });
 
         out.on('finish', function () {
@@ -98,7 +108,14 @@ export default {
 
         req.on('error', function (err) {
           out.close();
-          reject(err);
+          if (retries > 0) { // 有剩余重试次数
+            console.log(`Retrying download... Remaining retries: ${retries}`);
+            this.download(url, filePath, foldPath, retries - 1)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            reject(err);
+          }
         });
 
         out.on('error', function (err) {

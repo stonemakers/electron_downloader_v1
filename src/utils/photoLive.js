@@ -15,6 +15,7 @@ export default async (config) => {
       //   dTask.map(item => {
       //     if (item.title === title) {
       //       title += '_1'
+
       //     }
       //   })
       // }
@@ -35,7 +36,7 @@ export default async (config) => {
       // 3. 合成下载列表
       const fileList = await combineDownloadList(config, title, photoList, categoryList, watermark)
 
-      // console.log('fileList', fileList)
+      console.log('fileList', fileList)
 
       // 4. 返回任务
       resolve({

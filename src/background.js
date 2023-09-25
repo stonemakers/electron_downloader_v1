@@ -21,6 +21,8 @@ const appMenu = [
   }
 ];
 
+let winList = []
+
 const menu = Menu.buildFromTemplate(appMenu);
 Menu.setApplicationMenu(menu);
 
@@ -67,33 +69,51 @@ async function createWindow() {
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
     }
   })
-
+  winList.push(win)
   // win.webContents.openDevTools()
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
     // if (!process.env.IS_TEST) win.webContents.openDevTools()
-    // win.webContents.openDevTools()
+    if (win) {
+      win.webContents.openDevTools()
+    }
   } else {
     createProtocol('app')
     win.loadURL('app://./index.html')
   }
 
   win.on('close', () => {
-    win = null
+    console.log('yao guanbi le ')
+    const allWindows = BrowserWindow.getAllWindows();
+
+    allWindows.forEach(win => {
+      if (!win.isDestroyed()) {
+        win.close();
+      }
+    });
+
+    winList.forEach(item => {
+      if (item && !win.isDestroyed()) {
+        item.close()
+      }
+    })
   })
 }
+
+
 
 app.commandLine.appendSwitch("--disable-http-cache");
 
 app.on('window-all-closed', () => {
   console.log('window-all-closed')
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })
 
+
+
 app.on('before-quit', () => {
+  console.log('<<<<<before-quit')
   const allWindows = BrowserWindow.getAllWindows();
 
   allWindows.forEach(win => {
@@ -101,7 +121,34 @@ app.on('before-quit', () => {
       win.close();
     }
   });
+
+  winList.forEach(item => {
+    if (item && !win.isDestroyed()) {
+      item.close()
+    }
+  })
 });
+
+app.on('closed', () => {
+  console.log('---0')
+  const allWindows = BrowserWindow.getAllWindows();
+
+  allWindows.forEach(win => {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  });
+
+  winList.forEach(item => {
+    if (item && !win.isDestroyed()) {
+      item.close()
+    }
+  })
+
+  app.quit()
+  console.log('---1')
+  process.exit(0)
+})
 
 
 
@@ -182,6 +229,7 @@ app.on('ready', async () => {
         contextIsolation: false
       }
     })
+    winList.push(downloadWin)
     downloadWin.webContents.openDevTools()
     dTask = args.message
     downloadWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL + '#/download')
@@ -193,7 +241,9 @@ app.on('ready', async () => {
 
     // 下载加载成功
     ipcMain.on('download-process-ready', (event, arg) => {
-      downloadWin.webContents.send('downloadStart', dTask)
+      if (downloadWin) {
+        downloadWin.webContents.send('downloadStart', dTask)
+      }
     })
   })
 
@@ -210,6 +260,8 @@ app.on('ready', async () => {
         contextIsolation: false
       }
     })
+
+    winList.push(nwin)
 
     nwin.on('close', () => {
       nwin = null
@@ -253,21 +305,25 @@ app.on('ready', async () => {
 
   // 窗口加载状态通知
   ipcMain.on('loadingTask', (event, arg) => {
-    win.webContents.send('loadingTask', arg)
+    if (win) {
+      win.webContents.send('loadingTask', arg)
+    }
   })
 
   // 窗口加载状态通知
   ipcMain.on('pushTask', (event, arg) => {
     console.log('====jianting pushTask')
-    win.webContents.send('pushTask', arg)
+    if (win) {
+      win.webContents.send('pushTask', arg)
+    }
     // nwin.destroy()
 
-    setTimeout(() => {
-      if (nwin) {
-        nwin.destroy()
-        nwin = null
-      }
-    }, 2000);
+    // setTimeout(() => {
+    //   if (nwin) {
+    //     nwin.destroy()
+    //     nwin = null
+    //   }
+    // }, 2000);
   })
 
   ipcMain.on('destroy', (event, arg) => {
@@ -279,7 +335,9 @@ app.on('ready', async () => {
   })
 
   ipcMain.on('alert', (event, arg) => {
-    win.webContents.send('alert', arg)
+    if (win) {
+      win.webContents.send('alert', arg)
+    }
   })
 
   ipcMain.on('update', (event, v) => {
@@ -369,6 +427,12 @@ app.on('ready', async () => {
     if (url) handleUrl(url);
   }
 })
+
+process.on('uncaughtException', function (error) {
+  // log the error or take other actions
+  // 不要执行默认的错误处理，因此不会有错误弹窗出现
+  console.log('--error', error)
+});
 
 // app.on('open-url', (event, urlStr) => {
 //   console.log('监听到open-url1')

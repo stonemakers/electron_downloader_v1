@@ -652,7 +652,7 @@ export default {
     // this.init(this.taskConfig)
     // console.log('process.versions',process.versions)
     // 获取版本号
-    // await api.setVersion('3.6.5')
+    // await api.setVersion('3.6.7')
   }
 }
 </script>
