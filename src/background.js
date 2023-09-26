@@ -221,7 +221,7 @@ app.on('ready', async () => {
     downloadWin = new BrowserWindow({
       width: 800,
       height: 600,
-      show: false,
+      show: true,
       resizable: false,
       webPreferences: {
         nodeIntegration: true,
@@ -252,7 +252,7 @@ app.on('ready', async () => {
     nwin = new BrowserWindow({
       width: 600,
       height: 600,
-      show: false,
+      show: true,
       // resizable: false,
       webPreferences: {
         nodeIntegration: true,
@@ -260,6 +260,7 @@ app.on('ready', async () => {
         contextIsolation: false
       }
     })
+
 
     winList.push(nwin)
 

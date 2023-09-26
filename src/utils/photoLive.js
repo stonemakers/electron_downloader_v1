@@ -31,6 +31,7 @@ export default async (config) => {
       const photoList = await getPhotoList(config.id, config.source, config.sourceType, config.sourceId)
       // console.log('====photoList', photoList)
       // 2. 获取分类列表
+      console.log('-----config', config)
       const categoryList = await getCategoryList(config.id, config.sourceType)
       // console.log('categoryList', categoryList)
       // 3. 合成下载列表
@@ -62,8 +63,8 @@ export default async (config) => {
 }
 
 const getPhotoList = async (liveId, downloadType, sourceType, sourceId = null) => {
-  // console.log('---sourceType', sourceType)
-  // console.log('---sourceId', sourceId)
+
+  console.log('---sourceId1', sourceId, sourceType)
 
   let photoList = []
   if (downloadType === 'origin') {
@@ -73,20 +74,17 @@ const getPhotoList = async (liveId, downloadType, sourceType, sourceId = null) =
 
     if (sourceType === 'origin') {
       params = {
-        originalCategoryId: sourceId,
+        categoryId: sourceId,
       }
     }
     if (sourceType === 'photographer') {
-      params = {
-        originalUserId: sourceId,
-      }
-    }
-    if (sourceType === 'retoucher') {
       params = {
         createdUserId: sourceId,
       }
     }
 
+    //1
+    // console.log()
     try {
       const res = (await api.getOriginAlbumPhotoList({
         albumId: liveId,
@@ -295,7 +293,7 @@ const combineDownloadList = async (config, title, photoList, categoryList, water
   let fileList = []
   if (photoList.length > 0) {
     for (let i = 0; i < photoList.length; i++) {
-      // console.log(photoList[i])
+      console.log('???', photoList[i].categoryId)
       let categoryName = ''
       if (config.source === 'publish') {
         if (config.sourceType === 'publish') {

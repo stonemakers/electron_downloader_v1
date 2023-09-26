@@ -10,7 +10,9 @@
       <section class="cancel" @click="cancelHandle">返回</section>
     </section>
     <section class="header" :class="{ scale: scaleMin }">
-      <h1 class="title">正在下载 {{ taskList.length }}</h1>
+      <h1 class="title">
+        正在下载 {{ taskList.length }} <span class="speed">{{ speed }} Mb/s</span>
+      </h1>
       <section class="avatar" @click="logout" :style="{ backgroundImage: `url(${userInfo.avatar})` }"></section>
     </section>
 
@@ -116,6 +118,8 @@ export default {
       loading: false,
       urlStr: '',
       showAdd: false,
+      speed: 0,
+      timmer: {},
       taskConfig: {
         env: 'pro', // 测试环境（dev）, 生产环境（pro）
         downloadList: [
@@ -306,6 +310,7 @@ export default {
           break
         }
       }
+      console.log('---task', fl)
       return fl
     },
     async startAllTask() {
@@ -317,6 +322,9 @@ export default {
       }
     },
     pauseAll() {
+      if (this.timmer) {
+        // window.clearInterval(this.timmer)
+      }
       this.startAll = false
       // this.taskList.map(item => {
       //   this.pauseDownload(item.taskId)
@@ -326,6 +334,9 @@ export default {
       }
     },
     deleteAll() {
+      if (this.timmer) {
+        // window.clearInterval(this.timmer)
+      }
       // console.log(this.taskList, this.taskList.length)
       const list = this.taskList.concat()
       console.log('list', list)
@@ -342,7 +353,7 @@ export default {
         // 获取当前任务队列
         // 如果队列任务小于3，则添加任务到队列，
         // 队列任务同时进行下载，单个任务下载完毕后，移除队列，添加新任务到队列中
-        console.log(fileItem.savePath, fileItem.fold)
+        // console.log(fileItem.savePath, fileItem.fold)
         loadData.download(fileItem.url, fileItem.savePath, fileItem.fold).then((res) => {
           // console.log('下载完毕')
           fileItem.downloaded = true
@@ -375,6 +386,7 @@ export default {
       console.log('------path', this.$estore.get('downloadFold'))
       // console.log('this.taskList',this.taskList)
       // 1. 获取当前下载任务
+
       console.log('111', taskId)
       const currentTask = await this.taskList.find((item) => item.taskId === taskId)
       console.log('222', currentTask)
@@ -397,7 +409,7 @@ export default {
         // console.log(currentTask.status, fileList[i].downloaded)
         if (currentTask.status === 1) {
           if (!fileList[i].downloaded) {
-            console.log(fileList[i].savePath, fileList[i].fold)
+            // console.log(fileList[i].savePath, fileList[i].fold)
             await loadData.download(fileList[i].url, fileList[i].savePath, fileList[i].fold)
             // await this.doDownload({
             //   url: fileList[i].url,
@@ -540,6 +552,15 @@ export default {
         false
       )
     },
+    calcSpeed() {
+      let sp = 0
+      this.timmer = setInterval(() => {
+        // console.log(`速度：${loadData.calculateGlobalDownloadSpeed()} MB/s`)
+        this.speed = loadData.calculateGlobalDownloadSpeed()
+
+        console.log('====', this.speed)
+      }, 1000)
+    },
     // 监听下载器动作
     listenIPC() {
       ipcRenderer.on('initConfig', (event, arg) => {
@@ -652,7 +673,11 @@ export default {
     // this.init(this.taskConfig)
     // console.log('process.versions',process.versions)
     // 获取版本号
-    // await api.setVersion('3.6.7')
+    // await api.setVersion('3.6.8')
+
+    // 获取下载速度
+    // 每秒计算一次全局下载速度
+    this.calcSpeed()
   }
 }
 </script>
@@ -735,9 +760,21 @@ export default {
     border-bottom: 0.5px solid #efefef;
     z-index: 10;
 
+    h1 {
+      display: flex;
+      align-items: center;
+    }
+
     .title {
       font-size: 24px;
       transition: all 0.3s;
+    }
+
+    .speed {
+      font-size: 12px;
+      font-weight: 400;
+      color: grey;
+      margin-left: 10px;
     }
 
     .avatar {
