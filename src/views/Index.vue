@@ -227,12 +227,33 @@ export default {
     cancelHandle() {
       this.showAdd = false
     },
+    // 格式化路径
+    fmtStr(text) {
+      if (text) {
+        return text
+          .replace(/\//g, '')
+          .replace(/\\/g, '')
+          .replace(/\n/g, ' ')
+          .replace(/\?/g, '')
+          .replace(/\？/g, '')
+          .replace(/\*/g, '')
+          .replace(/\'/g, '')
+          .replace(/\"/g, '')
+          .replace(/\>/g, '')
+          .replace(/\</g, '')
+          .replace(/\|/g, '')
+          .replace(/\:/g, '')
+          .replace(/\｜/g, '')
+          .replace(/\：/g, '')
+      }
+    },
     openFold(task) {
+      console.log('====', task)
       if (ipcRenderer) {
         if (task.type === 'file') {
           ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold'))
         } else {
-          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold') + '/' + task.title)
+          ipcRenderer.send('openDownloadFold', this.$estore.get('downloadFold') + '/' + this.fmtStr(task.title))
         }
       }
     },
@@ -673,7 +694,7 @@ export default {
     // this.init(this.taskConfig)
     // console.log('process.versions',process.versions)
     // 获取版本号
-    // await api.setVersion('3.6.8')
+    // await api.setVersion('3.6.10')
 
     // 获取下载速度
     // 每秒计算一次全局下载速度

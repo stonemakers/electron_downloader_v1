@@ -252,7 +252,7 @@ app.on('ready', async () => {
     nwin = new BrowserWindow({
       width: 600,
       height: 600,
-      show: true,
+      show: false,
       // resizable: false,
       webPreferences: {
         nodeIntegration: true,
